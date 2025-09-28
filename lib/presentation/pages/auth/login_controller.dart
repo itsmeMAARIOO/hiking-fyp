@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:hikingapp/presentation/widgets/bottom_nav_bar.dart';
+import 'package:hikingapp/services/api_services.dart';
 
 class LoginController extends GetxController {
   var isLoading = false.obs;
@@ -7,20 +9,36 @@ class LoginController extends GetxController {
   var email = ''.obs;
   var password = ''.obs;
 
-  void login() async {
-    if (email.isEmpty || password.isEmpty) {
+  Future<void> login() async {
+    if (email.value.isEmpty || password.value.isEmpty) {
       Get.snackbar("Error", "Please enter email and password");
       return;
     }
 
-    isLoading.value = true;
+    try {
+      isLoading.value = true;
 
-    // TODO: Call your MongoDB authentication logic here
-    await Future.delayed(const Duration(seconds: 2));
+      final response = await ApiService.login(
+        email.value.trim(),
+        password.value.trim(),
+      );
 
-    isLoading.value = false;
+      // ✅ Adjust check to match backend response
+      if (response.containsKey("id") && response.containsKey("email")) {
+        // Save user info if needed
+        // Example: GetStorage().write("user", response);
 
-    // If login success
-    Get.offAllNamed("/home");
+        Get.snackbar("Success", "Welcome back, ${response["name"]}!");
+
+        // Navigate to dashboard
+        Get.offAllNamed("/dashboard");
+      } else {
+        Get.snackbar("Error", response["message"] ?? "Login failed");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Something went wrong: $e");
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
