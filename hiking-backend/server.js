@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
+import checkinRoutes from "./routes/checkin.js"; // 👈 added
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/checkin", checkinRoutes); // 👈 added
 
 // MongoDB connection
 mongoose

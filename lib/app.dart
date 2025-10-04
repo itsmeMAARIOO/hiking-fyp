@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:hikingapp/providers/dashboard_provider.dart';
 import 'package:hikingapp/providers/emergency_provider.dart';
 import 'package:hikingapp/providers/group_provider.dart';
@@ -15,6 +16,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => EmergencyProvider()),
@@ -23,7 +25,7 @@ class MyApp extends StatelessWidget {
       ],
       child: GetMaterialApp(
         debugShowCheckedModeBanner: false,
-        title: "Hiker Safety App",
+        title: "TrailGuard",
         theme: ThemeData(primarySwatch: Colors.green),
         initialRoute: AppRoutes.splash,
         getPages: AppRoutes.pages,

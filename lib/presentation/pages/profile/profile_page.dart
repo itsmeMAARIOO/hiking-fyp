@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:hikingapp/config/routes.dart';
+import 'package:hikingapp/presentation/pages/auth/login_page.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/profile_provider.dart';
 import 'widgets/profile_section.dart';
@@ -170,7 +175,14 @@ class ProfilePage extends StatelessWidget {
                     'Logout',
                     style: TextStyle(color: Color(0xFFE74C3C)),
                   ),
-                  onPressed: () => profile.logout(context),
+                  onPressed: () async {
+                    // Clear secure storage token
+                    const storage = FlutterSecureStorage();
+                    await storage.delete(key: "authToken");
+
+                    // Navigate to login and remove all previous routes
+                    Get.offAllNamed(AppRoutes.login);
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     side: const BorderSide(color: Color(0xFFE74C3C)),

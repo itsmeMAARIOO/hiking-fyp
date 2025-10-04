@@ -1,34 +1,167 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hikingapp/config/images/image_locations.dart';
+import 'package:hikingapp/presentation/pages/dashboard/animations/temparature_animation.dart';
+import 'package:hikingapp/utils/loading_helper.dart';
+import '../../../../data/models/weather_model.dart';
+import '../../../../services/weather_service.dart';
 
-class WeatherWidget extends StatelessWidget {
+class WeatherWidget extends StatefulWidget {
   const WeatherWidget({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final weather = {
-      'condition': 'partly-cloudy',
-      'temperature': 72,
-      'humidity': 65,
-      'windSpeed': 8,
-      'location': 'Mt. Wilson Trail',
-    };
+  State<WeatherWidget> createState() => _WeatherWidgetState();
+}
 
-    IconData getWeatherIcon() {
-      switch (weather['condition']) {
-        case 'sunny':
-          return Icons.wb_sunny;
-        case 'rainy':
-          return Icons.cloud_circle;
-        default:
-          return Icons.cloud;
+class _WeatherWidgetState extends State<WeatherWidget> {
+  Weather? weather;
+  late WeatherService weatherService;
+  bool isLoading = true;
+  bool isOffline = false;
+  bool isFahrenheit = true;
+
+  @override
+  void initState() {
+    super.initState();
+    weatherService = WeatherService();
+    loadWeather();
+  }
+
+  Future<void> loadWeather() async {
+    setState(() {
+      isLoading = true;
+      isOffline = false;
+    });
+
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        isOffline = true;
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            isOffline = true;
+            isLoading = false;
+          });
+          return;
+        }
       }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          isOffline = true;
+          isLoading = false;
+        });
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final fetchedWeather = await weatherService.fetchWeatherByCoords(
+        position.latitude,
+        position.longitude,
+      );
+
+      setState(() {
+        weather = fetchedWeather;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isOffline = true;
+        isLoading = false;
+      });
+    }
+  }
+
+  IconData getWeatherIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'sunny':
+        return Icons.wb_sunny;
+      case 'rain':
+      case 'rainy':
+        return Icons.cloud_circle;
+      case 'clouds':
+      case 'partly-cloudy':
+        return Icons.cloud;
+      default:
+        return Icons.cloud;
+    }
+  }
+
+  // Temperature conversion
+  double get temperatureC => ((weather!.temperature - 32) * 5 / 9);
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return Center(
+        child: LoadingHelper(
+          imagePath: ImageLocation.loading, // your PNG asset
+          size: 50,
+        ),
+      );
+    }
+
+    if (isOffline) {
+      return Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade100,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              offset: Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.signal_wifi_off, color: Colors.orange, size: 40),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "No Connection!",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Oh no, there is no internet connection. You are on your own on the trail. Be safe!",
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.blue.shade50,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(color: Colors.black12, offset: Offset(0, 2), blurRadius: 4),
@@ -37,73 +170,31 @@ class WeatherWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Current Weather",
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2C3E50),
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          Text(
-            "weather['location']!",
-            style: const TextStyle(fontSize: 12, color: Color(0xFF8B7355)),
-          ),
+          Text(weather!.location),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    getWeatherIcon(),
-                    size: 24,
-                    color: const Color(0xFF95A5A6),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "${weather['temperature']}°F",
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2C3E50),
-                    ),
-                  ),
-                ],
+              AnimatedTemperatureWidget(
+                temperatureF: weather!.temperature,
+                temperatureC: temperatureC,
+                isFahrenheit: isFahrenheit,
+                weatherIcon: getWeatherIcon(weather!.condition),
+                onTap: () {
+                  setState(() {
+                    isFahrenheit = !isFahrenheit;
+                  });
+                },
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.thermostat,
-                        size: 16,
-                        color: Color(0xFF8B7355),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        "Humidity: ${weather['humidity']}%",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8B7355),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      const Icon(Icons.air, size: 16, color: Color(0xFF8B7355)),
-                      const SizedBox(width: 6),
-                      Text(
-                        "Wind: ${weather['windSpeed']} mph",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8B7355),
-                        ),
-                      ),
-                    ],
-                  ),
+                  Text("Humidity: ${weather!.humidity}%"),
+                  Text("Wind: ${weather!.windSpeed} mph"),
                 ],
               ),
             ],

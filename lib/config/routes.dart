@@ -20,7 +20,7 @@ class AppRoutes {
   static const profile = '/profile';
 
   static final pages = [
-    GetPage(name: splash, page: () => const SplashPage()),
+    GetPage(name: splash, page: () => SplashPage()),
     GetPage(name: login, page: () => const LoginPage()),
     GetPage(name: signup, page: () => const SignupPage()),
     GetPage(name: dashboard, page: () => const DashboardPage()),

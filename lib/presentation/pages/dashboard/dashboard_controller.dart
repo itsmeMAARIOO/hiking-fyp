@@ -1,11 +1,31 @@
-// import 'package:get/get.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../../services/checkin_service.dart';
 
-// class DashboardController extends GetxController {
-//   var isTracking = false.obs;
-//   var isOnline = true.obs;
-//   var lastCheckIn = DateTime.now().obs;
-//   var groupMembers = 3.obs;
+class DashboardController {
+  final CheckInService checkInService;
 
-//   void toggleTracking() => isTracking.value = !isTracking.value;
-//   void checkIn() => lastCheckIn.value = DateTime.now();
-// }
+  DashboardController(this.checkInService);
+
+  Future<void> performCheckIn({
+    required String? userId,
+    required DateTime lastCheckIn,
+  }) async {
+    try {
+      // Get current GPS position
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      await checkInService.saveCheckIn(
+        userId: userId,
+        checkinTime: DateTime.now(),
+        lastCheckinTime: lastCheckIn,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        extraData: {'note': 'Triple-tap check-in'},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+}

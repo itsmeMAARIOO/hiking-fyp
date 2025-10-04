@@ -1,27 +1,27 @@
 // lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:hikingapp/config/api_config.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.1.31:3000";
+  /// Base URL is dynamic, read from ApiConfig
+  static String get baseUrl => ApiConfig.baseUrl;
 
+  /// Signup
   static Future<Map<String, dynamic>> signup(
     String name,
     String email,
     String password,
   ) async {
     try {
-      print('🚀 Making request to: $baseUrl/api/auth/signup');
-
-      final url = Uri.parse(
-        "$baseUrl/api/auth/signup",
-      ); // Fixed: Added /api/auth
+      final url = Uri.parse("$baseUrl/auth/signup");
       final body = jsonEncode({
         "name": name,
         "email": email,
         "password": password,
       });
 
+      print('🚀 Making request to: $url');
       print('📤 Request body: $body');
 
       final response = await http
@@ -34,12 +34,10 @@ class ApiService {
             body: body,
           )
           .timeout(
-            const Duration(seconds: 10), // Add timeout
-            onTimeout: () {
-              throw Exception(
-                'Connection timeout - please check if server is running',
-              );
-            },
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception(
+              'Connection timeout - please check if server is running',
+            ),
           );
 
       print('📥 Response status: ${response.statusCode}');
@@ -52,21 +50,24 @@ class ApiService {
         throw Exception(errorData['message'] ?? "Signup failed");
       }
     } catch (e) {
-      print('❌ API Error: $e');
+      print('❌ API Signup Error: $e');
       rethrow;
     }
   }
 
+  /// Login
   static Future<Map<String, dynamic>> login(
     String email,
     String password,
   ) async {
     try {
-      print('🚀 Making request to: $baseUrl/api/auth/login');
+      final url = Uri.parse('$baseUrl/auth/login');
+
+      print('🚀 Making request to: $url');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/api/auth/login'), // Fixed: Added /api/auth
+            url,
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
@@ -75,24 +76,27 @@ class ApiService {
           )
           .timeout(
             const Duration(seconds: 10),
-            onTimeout: () {
-              throw Exception(
-                'Connection timeout - please check if server is running',
-              );
-            },
+            onTimeout: () => throw Exception(
+              'Connection timeout - please check if server is running',
+            ),
           );
 
       print('📥 Login response status: ${response.statusCode}');
       print('📥 Login response body: ${response.body}');
 
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? "Login failed");
+      }
     } catch (e) {
       print('❌ Login API Error: $e');
       rethrow;
     }
   }
 
-  // Test connection method
+  /// Test connection to server
   static Future<bool> testConnection() async {
     try {
       final response = await http

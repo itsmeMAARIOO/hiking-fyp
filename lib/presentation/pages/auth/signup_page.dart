@@ -1,7 +1,7 @@
 // lib/presentation/pages/auth/signup_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hikingapp/services/api_services.dart';
+import 'package:hikingapp/services/auth_services.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});

@@ -1,42 +1,66 @@
 import 'package:get/get.dart';
-import 'package:hikingapp/presentation/widgets/bottom_nav_bar.dart';
-import 'package:hikingapp/services/api_services.dart';
+import 'package:hikingapp/providers/auth_provider.dart';
+import 'package:hikingapp/services/auth_services.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
+import 'package:provider/provider.dart';
 
 class LoginController extends GetxController {
   var isLoading = false.obs;
 
-  // For text fields
+  // Text field bindings
   var email = ''.obs;
   var password = ''.obs;
 
+  // Password visibility
+  var isPasswordHidden = true.obs;
+
   Future<void> login() async {
-    if (email.value.isEmpty || password.value.isEmpty) {
-      Get.snackbar("Error", "Please enter email and password");
+    if (email.value.trim().isEmpty || password.value.trim().isEmpty) {
+      SnackbarHelper.showError("Error", "Please enter email and password");
       return;
     }
 
     try {
       isLoading.value = true;
 
+      // Call your backend API
       final response = await ApiService.login(
         email.value.trim(),
         password.value.trim(),
       );
 
-      // ✅ Adjust check to match backend response
-      if (response.containsKey("id") && response.containsKey("email")) {
-        // Save user info if needed
-        // Example: GetStorage().write("user", response);
+      // 👇 Expecting response like:
+      // { "id": "...", "name": "...", "email": "..." }
 
-        Get.snackbar("Success", "Welcome back, ${response["name"]}!");
+      if (response.containsKey("id") &&
+          response.containsKey("email") &&
+          response["id"] != null) {
+        // Get AuthProvider from context
+        final authProvider = Get.context!.read<AuthProvider>();
+        authProvider.setUser({
+          'id': response['id'], // 🔥 match schema used in AuthProvider
+          'email': response['email'],
+          'name': response['name'] ?? 'User',
+        });
 
-        // Navigate to dashboard
+        SnackbarHelper.showSuccess(
+          "Success",
+          "Welcome back, ${response["name"] ?? "User"}!",
+        );
+
         Get.offAllNamed("/dashboard");
       } else {
-        Get.snackbar("Error", response["message"] ?? "Login failed");
+        final errorMsg =
+            response["message"] ??
+            response["error"] ??
+            "Login failed. Please try again.";
+        SnackbarHelper.showError("Error", errorMsg);
       }
     } catch (e) {
-      Get.snackbar("Error", "Something went wrong: $e");
+      SnackbarHelper.showError(
+        "Error",
+        "Could not connect to server. Please check your internet or try again.\n\nDetails: $e",
+      );
     } finally {
       isLoading.value = false;
     }
