@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hikingapp/presentation/pages/emergency/widgets/emergency_quick_actions.dart';
+import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:provider/provider.dart';
 import 'widgets/emergency_button.dart';
 import 'widgets/fall_detection.dart';
@@ -22,56 +23,25 @@ class EmergencyPage extends StatelessWidget {
           child: Column(
             children: [
               // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 20,
-                  horizontal: 20,
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.shield,
-                      size: 32,
-                      color: emergencyProvider.emergencyMode
-                          ? Colors.white
-                          : Colors.red,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Emergency",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: emergencyProvider.emergencyMode
-                            ? Colors.white
-                            : const Color(0xFF2C3E50),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      emergencyProvider.emergencyMode
-                          ? 'SOS ACTIVE - Help is on the way'
-                          : 'Safety tools and emergency contacts',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: emergencyProvider.emergencyMode
-                            ? Colors.white
-                            : const Color(0xFF8B7355),
-                        fontWeight: emergencyProvider.emergencyMode
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+              CommonHeader(
+                title: "Emergency",
+                subtitle: emergencyProvider.emergencyMode
+                    ? "SOS ACTIVE - Help is on the way"
+                    : "Safety tools and emergency contacts",
+                trailingWidget: Icon(
+                  Icons.shield,
+                  size: 32,
+                  color: emergencyProvider.emergencyMode
+                      ? Colors.white
+                      : Colors.red,
                 ),
               ),
 
               // Emergency Button
-              EmergencyButton(),
+              const EmergencyButton(),
 
               // Fall Detection
-              FallDetection(),
+              const FallDetection(),
 
               // Quick Actions
               const QuickActionsButtons(),

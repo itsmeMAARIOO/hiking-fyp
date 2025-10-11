@@ -67,18 +67,21 @@ class _CheckInSuccessAnimationState extends State<CheckInSuccessAnimation>
           children: [
             // Glow effect behind the widget (doesn't affect layout)
             Positioned.fill(
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
-                opacity: _controller.value > 0 ? 1 : 0,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.greenAccent.withOpacity(0.5),
-                        blurRadius: _glow.value,
-                        spreadRadius: _glow.value / 2,
-                      ),
-                    ],
+              child: Positioned.fill(
+                child: IgnorePointer(
+                  // ensure it doesn’t block touches
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.greenAccent.withOpacity(
+                            _controller.value * 0.5,
+                          ),
+                          blurRadius: _glow.value,
+                          spreadRadius: _glow.value / 2,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

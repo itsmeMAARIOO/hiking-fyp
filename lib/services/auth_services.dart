@@ -4,9 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:hikingapp/config/api_config.dart';
 
 class ApiService {
-  /// Base URL is dynamic, read from ApiConfig
-  static String get baseUrl => ApiConfig.baseUrl;
-
   /// Signup
   static Future<Map<String, dynamic>> signup(
     String name,
@@ -14,6 +11,7 @@ class ApiService {
     String password,
   ) async {
     try {
+      final baseUrl = ApiConfig.baseUrl;
       final url = Uri.parse("$baseUrl/auth/signup");
       final body = jsonEncode({
         "name": name,
@@ -61,6 +59,7 @@ class ApiService {
     String password,
   ) async {
     try {
+      final baseUrl = ApiConfig.baseUrl;
       final url = Uri.parse('$baseUrl/auth/login');
 
       print('🚀 Making request to: $url');
@@ -99,6 +98,7 @@ class ApiService {
   /// Test connection to server
   static Future<bool> testConnection() async {
     try {
+      final baseUrl = ApiConfig.baseUrl;
       final response = await http
           .get(Uri.parse('$baseUrl/'), headers: {"Accept": "application/json"})
           .timeout(const Duration(seconds: 5));

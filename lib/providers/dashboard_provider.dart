@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
@@ -7,28 +8,41 @@ import 'package:provider/provider.dart';
 class DashboardProvider extends ChangeNotifier {
   bool _isTracking = false;
   bool _isOnline = true;
-  DateTime _lastCheckIn = DateTime.now();
+  DateTime? _lastCheckIn;
   int _groupMembers = 0;
 
   final CheckInService _checkInService = CheckInService();
   final Connectivity _connectivity = Connectivity();
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
-  DashboardProvider() {
+  DashboardProvider(AuthProvider authProvider) {
     _initConnectivity();
-    _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+
+    // Listen to connectivity changes
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
+      _updateConnectionStatus,
+    );
+
+    // Fetch last check-in if userId exists
+    final userId = authProvider.userId;
+    if (userId != null) {
+      fetchLastCheckInOnInit(userId);
+    }
   }
 
+  // ===== Getters =====
   bool get isTracking => _isTracking;
   bool get isOnline => _isOnline;
-  DateTime get lastCheckIn => _lastCheckIn;
+  DateTime? get lastCheckIn => _lastCheckIn;
   int get groupMembers => _groupMembers;
 
+  // ===== Public Methods =====
   void toggleTracking() {
     _isTracking = !_isTracking;
     notifyListeners();
   }
 
-  Future<void> loadLastCheckIn(context) async {
+  Future<void> loadLastCheckIn(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.userId;
     if (userId == null) return;
@@ -46,12 +60,22 @@ class DashboardProvider extends ChangeNotifier {
 
   void updateLastCheckIn(DateTime newTime) {
     _lastCheckIn = newTime;
-    notifyListeners(); // 👈 this rebuilds the UI
+    notifyListeners();
   }
 
+  void updateGroupMembers(int count) {
+    _groupMembers = count;
+    notifyListeners();
+  }
+
+  // ===== Private Methods =====
   Future<void> _initConnectivity() async {
-    final result = await _connectivity.checkConnectivity();
-    _updateConnectionStatus(result);
+    try {
+      final result = await _connectivity.checkConnectivity();
+      _updateConnectionStatus(result);
+    } catch (e) {
+      print('❌ Failed to initialize connectivity: $e');
+    }
   }
 
   void _updateConnectionStatus(ConnectivityResult result) {
@@ -59,8 +83,21 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateGroupMembers(int count) {
-    _groupMembers = count;
-    notifyListeners();
+  Future<void> fetchLastCheckInOnInit(String userId) async {
+    try {
+      final fetched = await _checkInService.fetchLastCheckIn(userId);
+      if (fetched != null) {
+        _lastCheckIn = fetched;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('❌ Failed to fetch last check-in: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
   }
 }
