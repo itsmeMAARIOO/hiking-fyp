@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:hikingapp/providers/group_provider.dart';
 import 'package:hikingapp/services/group_services.dart';
@@ -26,11 +28,15 @@ class _TrailGroupPageState extends State<TrailGroupPage>
   late AnimationController _pulseController;
   bool _isTracking = true;
 
+  // Cache provider to avoid context lookups during dispose
+  late GroupProvider _groupProvider;
+
   // Trail statistics
   Duration _elapsedTime = Duration.zero;
   double _totalDistance = 0.0;
   double _currentSpeed = 0.0;
   Timer? _timer;
+  Timer? _statusPoller; // polls group status for instant redirect
 
   // Location tracking variables
   final Location _location = Location(); // ✅ Initialize location service
@@ -56,6 +62,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
   @override
   void initState() {
     super.initState();
+    _groupProvider = Provider.of<GroupProvider>(context, listen: false);
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -73,6 +80,31 @@ class _TrailGroupPageState extends State<TrailGroupPage>
         userId: _currentUserId,
         userName: _currentUserName,
       );
+
+      // Start short polling to detect trail completion instantly
+      final groupId = _groupProvider.activeGroup?['_id']?.toString();
+      if (groupId != null && groupId.isNotEmpty) {
+        _statusPoller?.cancel();
+        _statusPoller = Timer.periodic(const Duration(seconds: 3), (t) async {
+          if (!mounted) return;
+          try {
+            await _groupProvider.fetchGroupById(groupId);
+            final status = _groupProvider.activeGroup?['activeTrail']?['status']
+                ?.toString();
+            if (status == 'completed') {
+              t.cancel();
+              // Use standardized snackbar helper
+              SnackbarHelper.showSuccess(
+                'Trail Ended',
+                'Trail ended by group leader',
+              );
+              Get.offAllNamed('/dashboard');
+            }
+          } catch (_) {
+            // ignore transient errors during polling
+          }
+        });
+      }
     });
   }
 
@@ -173,8 +205,9 @@ class _TrailGroupPageState extends State<TrailGroupPage>
   void dispose() {
     _pulseController.dispose();
     _timer?.cancel();
-    final provider = Provider.of<GroupProvider>(context, listen: false);
-    provider.stopLocationUpdates();
+    _statusPoller?.cancel();
+    // Use cached provider to avoid accessing context of a deactivated widget
+    _groupProvider.stopLocationUpdates();
     super.dispose();
   }
 

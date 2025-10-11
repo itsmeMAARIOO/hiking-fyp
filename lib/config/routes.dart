@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:hikingapp/presentation/pages/auth/signup/signup_page.dart';
 import 'package:hikingapp/presentation/pages/emergency/emergency_page.dart';
-import 'package:hikingapp/presentation/pages/group/create_group/group_page.dart';
+import 'package:hikingapp/presentation/pages/group/create_group/create_group_page.dart';
 import 'package:hikingapp/presentation/pages/map/main_map/map_page.dart';
 import 'package:hikingapp/presentation/pages/profile/edit_profile/edit_profile_page.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_page.dart';

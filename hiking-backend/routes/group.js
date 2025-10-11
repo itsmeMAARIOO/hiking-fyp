@@ -1,7 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
 import TrailGroup from "../models/TrailGroup.js";
-import TrailHistory from "../models/TrailHistory.js";
 import Checkin from "../models/Checkin.js";
 const router = express.Router();
 
@@ -251,307 +250,109 @@ router.post("/leave-group", async (req, res) => {
 });
 //--------------------------------------------------------------------------------- Using API -----------------------------------------------------------------------------
 
-// ✅ Accept group invitation
-router.post("/accept-invitation", async (req, res) => {
-  try {
-    const { groupId, userId } = req.body;
-
-    if (!groupId || !userId) {
-      return res.status(400).json({ error: "Missing groupId or userId" });
-    }
-
-    const group = await TrailGroup.findById(groupId);
-    if (!group) return res.status(404).json({ error: "Group not found" });
-
-    const member = group.members.find((m) => m.userId.toString() === userId);
-    if (!member) {
-      return res.status(404).json({ error: "Invitation not found" });
-    }
-
-    if (member.status !== "invited") {
-      return res.status(400).json({ error: "No pending invitation" });
-    }
-
-    // Update member status to active
-    member.status = "active";
-    await group.save();
-
-    console.log(`✅ ${member.name} accepted invitation to ${group.groupName}`);
-    res.json({ success: true, group });
-  } catch (err) {
-    console.error("❌ Error accepting invitation:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Decline group invitation
-router.post("/decline-invitation", async (req, res) => {
-  try {
-    const { groupId, userId } = req.body;
-
-    if (!groupId || !userId) {
-      return res.status(400).json({ error: "Missing groupId or userId" });
-    }
-
-    const group = await TrailGroup.findById(groupId);
-    if (!group) return res.status(404).json({ error: "Group not found" });
-
-    const member = group.members.find((m) => m.userId.toString() === userId);
-    if (!member) {
-      return res.status(404).json({ error: "Invitation not found" });
-    }
-
-    if (member.status !== "invited") {
-      return res.status(400).json({ error: "No pending invitation" });
-    }
-
-    // Update member status to declined
-    member.status = "declined";
-    await group.save();
-
-    console.log(`❌ ${member.name} declined invitation to ${group.groupName}`);
-    res.json({ success: true, message: "Invitation declined" });
-  } catch (err) {
-    console.error("❌ Error declining invitation:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Get pending invitations for a user
-router.get("/pending-invitations/:userId", async (req, res) => {
+// routes/trailGroupRoutes.js
+router.get("/invitation/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-
-    const groups = await TrailGroup.find({
+    const group = await TrailGroup.findOne({
       "members.userId": userId,
       "members.status": "invited",
     });
 
-    const invitations = groups
-      .map((group) => {
-        const member = group.members.find(
-          (m) => m.userId.toString() === userId && m.status === "invited"
-        );
-        if (!member) return null;
+    if (!group) {
+      return res.status(404).json({ message: "No invitations found" });
+    }
 
-        return {
-          groupId: group._id,
-          groupName: group.groupName,
-          trailName: group.activeTrail?.trailName || "No Trail",
-          createdAt: group.createdAt,
-          memberCount: group.members.filter((m) => m.status === "active")
-            .length,
-        };
-      })
-      .filter((inv) => inv !== null);
+    res.json(group);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-    res.json({ success: true, invitations });
+router.put("/invitation/respond", async (req, res) => {
+  try {
+    const { userId, groupId, status } = req.body; // status = 'accepted' | 'rejected'
+
+    const group = await TrailGroup.findOneAndUpdate(
+      { _id: groupId, "members.userId": userId },
+      { $set: { "members.$.status": status } },
+      { new: true }
+    );
+
+    if (!group) {
+      return res.status(404).json({ message: "Invitation not found" });
+    }
+
+    res.json({ message: `Invitation ${status}`, group });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/groups/:groupId", async (req, res) => {
+  try {
+    const group = await TrailGroup.findById(req.params.groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    res.json({ group });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add this route to your trailGroupRoutes.js
+
+// ✅ End trail (creator only - ends for everyone)
+router.post("/end-trail", async (req, res) => {
+  try {
+    const { groupId, userId } = req.body;
+
+    console.log("📍 End trail request:", { groupId, userId });
+
+    if (!groupId || !userId) {
+      return res.status(400).json({ error: "Missing groupId or userId" });
+    }
+
+    const group = await TrailGroup.findById(groupId);
+    if (!group) {
+      console.log("❌ Group not found:", groupId);
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    console.log("✅ Group found:", group.groupName);
+    console.log("   Creator:", group.createdBy);
+    console.log("   Requesting user:", userId);
+
+    // Verify user is the creator
+    if (group.createdBy.toString() !== userId) {
+      console.log("❌ Not creator - access denied");
+      return res
+        .status(403)
+        .json({ error: "Only the creator can end the trail" });
+    }
+
+    // Mark the active trail as completed per schema
+    if (group.activeTrail) {
+      group.activeTrail.status = "completed";
+      group.activeTrail.endTime = new Date();
+    }
+
+    await group.save();
+
+    console.log(`🏁 Trail marked completed by creator: ${group.groupName}`);
+    res.json({
+      success: true,
+      message: "Trail completed for all members",
+      group,
+    });
   } catch (err) {
-    console.error("❌ Error fetching invitations:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("❌ Error ending trail:", err);
+    console.error("   Stack:", err.stack);
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
 export default router;
-
-/* ---------------------------------------------
- 🧩 Schemas
-----------------------------------------------*/
-
-// ✅ Save trail history
-router.post("/save-trail-history", async (req, res) => {
-  try {
-    const {
-      groupId,
-      trailName,
-      groupName,
-      userId,
-      userName,
-      startTime,
-      endTime,
-      duration,
-      totalDistance,
-      averageSpeed,
-      path,
-      participants,
-      status = "completed"
-    } = req.body;
-
-    // Validate required fields
-    if (!groupId || !trailName || !userId || !userName || !startTime || !endTime || !duration || totalDistance === undefined || !averageSpeed) {
-      return res.status(400).json({ 
-        error: "Missing required fields",
-        required: ["groupId", "trailName", "userId", "userName", "startTime", "endTime", "duration", "totalDistance", "averageSpeed"]
-      });
-    }
-
-    // Create new trail history record
-    const trailHistory = new TrailHistory({
-      groupId,
-      trailName,
-      groupName,
-      userId,
-      userName,
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
-      duration,
-      totalDistance,
-      averageSpeed,
-      path: path || [],
-      participants: participants || [],
-      status
-    });
-
-    const savedHistory = await trailHistory.save();
-    
-    console.log("✅ Trail history saved:", savedHistory._id);
-    res.status(201).json({
-      success: true,
-      message: "Trail history saved successfully",
-      trailHistory: savedHistory
-    });
-
-  } catch (error) {
-    console.error("❌ Error saving trail history:", error);
-    res.status(500).json({ 
-      error: "Failed to save trail history",
-      details: error.message 
-    });
-  }
-});
-
-// ✅ Get user's trail history
-router.get("/trail-history/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
-    }
-
-    const skip = (page - 1) * limit;
-    
-    const trailHistory = await TrailHistory.find({ userId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .populate("participants.userId", "name")
-      .exec();
-
-    const totalCount = await TrailHistory.countDocuments({ userId });
-
-    res.status(200).json({
-      success: true,
-      trailHistory,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalCount / limit),
-        totalCount,
-        hasMore: skip + trailHistory.length < totalCount
-      }
-    });
-
-  } catch (error) {
-    console.error("❌ Error fetching trail history:", error);
-    res.status(500).json({ 
-      error: "Failed to fetch trail history",
-      details: error.message 
-    });
-  }
-});
-
-// ✅ Get specific trail history by ID
-router.get("/trail-history-detail/:historyId", async (req, res) => {
-  try {
-    const { historyId } = req.params;
-
-    if (!historyId) {
-      return res.status(400).json({ error: "History ID is required" });
-    }
-
-    const trailHistory = await TrailHistory.findById(historyId)
-      .populate("userId", "name profileImage")
-      .populate("participants.userId", "name profileImage")
-      .populate("groupId", "groupName")
-      .exec();
-
-    if (!trailHistory) {
-      return res.status(404).json({ error: "Trail history not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      trailHistory
-    });
-
-  } catch (error) {
-    console.error("❌ Error fetching trail history detail:", error);
-    res.status(500).json({ 
-      error: "Failed to fetch trail history detail",
-      details: error.message 
-    });
-  }
-});
-
-//--------------------------------------------------------------------------------- Schema Definitions (Commented) -----------------------------------------------------------------------------
-// const pathSchema = new mongoose.Schema({
-//   lat: Number,
-//   lng: Number,
-//   timestamp: { type: Date, default: Date.now },
-// });
-
-// const memberSchema = new mongoose.Schema({
-//   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-//   name: String,
-//   latitude: Number,
-//   longitude: Number,
-//   lastUpdated: {
-//     type: Date,
-//     default: () => new Date(new Date().getTime() + 8 * 60 * 60 * 1000),
-//   },
-//   role: { type: String, enum: ["leader", "member"], default: "member" },
-//   status: {
-//     type: String,
-//     enum: ["active", "invited", "declined"],
-//     default: "active",
-//   },
-// });
-
-// const trailSchema = new mongoose.Schema({
-//   trailName: String,
-//   startTime: {
-//     type: Date,
-//     default: () => new Date(new Date().getTime() + 8 * 60 * 60 * 1000),
-//   },
-//   endTime: Date,
-//   path: [pathSchema],
-//   status: { type: String, enum: ["active", "completed"], default: "active" },
-// });
-
-// const trailGroupSchema = new mongoose.Schema(
-//   {
-//     groupName: { type: String, required: true },
-//     createdBy: {
-//       type: mongoose.Schema.Types.ObjectId,
-//       ref: "User",
-//       required: true,
-//     },
-//     members: [memberSchema],
-//     activeTrail: trailSchema,
-//   },
-//   { timestamps: true }
-// );
-
-// const TrailGroup = mongoose.model("TrailGroup", trailGroupSchema);
-
-// const checkinSchema = new mongoose.Schema({
-//   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-//   latitude: Number,
-//   longitude: Number,
-//   checkinTime: { type: Date, default: Date.now },
-//   lastCheckinTime: Date,
-//   extraData: mongoose.Schema.Types.Mixed,
-// });
-
-// const Checkin = mongoose.model("Checkin", checkinSchema, "checkins");

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -32,10 +33,9 @@ class _CompassPageState extends State<CompassPage> {
         });
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Permission denied. Cannot access compass."),
-        ),
+      SnackbarHelper.showError(
+        "Error",
+        "Permission denied. Cannot access compass.",
       );
     }
   }

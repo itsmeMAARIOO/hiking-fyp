@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import '../../../../../providers/profile_provider.dart';
 
 class EmergencyContactCard extends StatelessWidget {
@@ -33,16 +34,7 @@ class EmergencyContactCard extends StatelessWidget {
           if (await canLaunchUrl(url)) {
             await launchUrl(url);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Cannot make a call on this device'),
-                backgroundColor: const Color(0xFFFF6B35),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
+            SnackbarHelper.showError('Error', 'Cannot make a call on this device');
           }
         }
       },

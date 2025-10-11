@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hikingapp/presentation/pages/group/create_group/group_page.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
+import 'package:hikingapp/config/api_config.dart';
+import 'package:hikingapp/presentation/pages/group/create_group/create_group_page.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:hikingapp/providers/group_provider.dart';
 
 class GroupServices {
+  final String baseUrl = ApiConfig.baseUrl;
+
   /// Start location tracking immediately
   static void startTracking({
     required BuildContext context,
@@ -41,19 +48,24 @@ class GroupServices {
         userId: userId,
         userName: userName,
       );
-      _showSnackBar(context, '🎯 Location tracking started', kMediumSage);
+      SnackbarHelper.showSuccess('Success', '🎯 Location tracking started');
     } else {
       provider.stopLocationUpdates();
-      _showSnackBar(context, '⏸️ Location tracking paused', kDeepTeal);
+      SnackbarHelper.showSuccess('Info', '⏸️ Location tracking paused');
     }
   }
 
-  /// Show dialog when ending the trail
+  /// Show dialog when ending the trail (different for creator vs joiner)
   static void showEndTrailDialog({
     required BuildContext context,
     required GroupProvider provider,
     required String userId,
   }) {
+    final group = provider.activeGroup;
+    if (group == null) return;
+
+    final isCreator = group['createdBy'].toString() == userId;
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -70,16 +82,16 @@ class GroupServices {
                   color: const Color(0xFFFF6B6B).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.stop_circle_rounded,
-                  color: Color(0xFFFF6B6B),
+                child: Icon(
+                  isCreator ? Icons.flag_rounded : Icons.exit_to_app_rounded,
+                  color: const Color(0xFFFF6B6B),
                   size: 32,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'End Trail?',
-                style: TextStyle(
+              Text(
+                isCreator ? 'End Trail?' : 'Leave Group?',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: kDeepTeal,
@@ -87,7 +99,9 @@ class GroupServices {
               ),
               const SizedBox(height: 8),
               Text(
-                'Are you sure you want to end this trail and leave the group?',
+                isCreator
+                    ? 'This will end the trail for all members and disband the group.'
+                    : 'Are you sure you want to leave this group?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -100,7 +114,12 @@ class GroupServices {
                   Expanded(child: _buildCancelButton(context)),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildEndTrailButton(context, provider, userId),
+                    child: _buildActionButton(
+                      context,
+                      provider,
+                      userId,
+                      isCreator,
+                    ),
                   ),
                 ],
               ),
@@ -118,14 +137,14 @@ class GroupServices {
     String message,
     Color bgColor,
   ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: bgColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    // Delegate to SnackbarHelper for consistency
+    // Use a simple heuristic: red-ish backgrounds -> error; otherwise success/info.
+    final isError = bgColor.red > bgColor.green && bgColor.red > bgColor.blue;
+    if (isError) {
+      SnackbarHelper.showError('Error', message);
+    } else {
+      SnackbarHelper.showSuccess('Info', message);
+    }
   }
 
   static Widget _buildCancelButton(BuildContext context) {
@@ -164,10 +183,11 @@ class GroupServices {
     );
   }
 
-  static Widget _buildEndTrailButton(
+  static Widget _buildActionButton(
     BuildContext context,
     GroupProvider provider,
     String userId,
+    bool isCreator,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -186,12 +206,45 @@ class GroupServices {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () async {
-            await provider.leaveGroup(userId);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Get.offAllNamed('/dashboard', arguments: {'tab': 3});
-            });
-          },
+            // Get the navigator before any async operations
+            final navigator = Navigator.of(context);
 
+            // Close dialog first
+            navigator.pop();
+
+            bool success = false;
+            String? errorMessage;
+
+            try {
+              if (isCreator) {
+                // Creator ends trail for everyone
+                success = await provider.endTrail(userId);
+                if (!success && provider.lastError != null) {
+                  errorMessage = provider.lastError;
+                }
+              } else {
+                // Joiner just leaves the group
+                await provider.leaveGroup(userId);
+                success = true;
+              }
+            } catch (e) {
+              errorMessage = e.toString();
+            }
+
+            // Navigate back to dashboard first
+            Get.offAllNamed('/dashboard', arguments: {'tab': 3});
+
+            // Show snackbar after navigation using SnackbarHelper
+            if (success) {
+              final msg = isCreator
+                  ? '🏁 Trail ended for all members'
+                  : '👋 You left the group';
+              SnackbarHelper.showSuccess('Success', msg);
+            } else {
+              final msg = '⚠️ Failed: ${errorMessage ?? "Unknown error"}';
+              SnackbarHelper.showError('Error', msg);
+            }
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
@@ -202,10 +255,10 @@ class GroupServices {
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text(
-              'End Trail',
+            child: Text(
+              isCreator ? 'End Trail' : 'Leave Group',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
               ),
@@ -214,5 +267,32 @@ class GroupServices {
         ),
       ),
     );
+  }
+
+  Future<Map<String, dynamic>?> checkInvitation(String userId) async {
+    final res = await http.get(Uri.parse('$baseUrl/group/invitation/$userId'));
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    }
+    return null;
+  }
+
+  Future<bool> respondInvitation(
+    String userId,
+    String groupId,
+    String status,
+  ) async {
+    final res = await http.put(
+      Uri.parse('$baseUrl/group/invitation/respond'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'groupId': groupId,
+        'status': status,
+      }),
+    );
+
+    return res.statusCode == 200;
   }
 }

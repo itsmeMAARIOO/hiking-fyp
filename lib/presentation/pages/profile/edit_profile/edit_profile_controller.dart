@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:hikingapp/config/api_config.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 
 class EditProfileController extends ChangeNotifier {
   final BuildContext context;
@@ -90,10 +91,9 @@ class EditProfileController extends ChangeNotifier {
 
     if (userId == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("User ID not found. Please log in again."),
-          ),
+        SnackbarHelper.showError(
+          "Error",
+          "User ID not found. Please log in again.",
         );
       }
       return null;
@@ -129,23 +129,18 @@ class EditProfileController extends ChangeNotifier {
       final respData = jsonDecode(respStr);
 
       if (response.statusCode == 200 && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile updated successfully")),
-        );
+        SnackbarHelper.showSuccess("Success", "Profile updated successfully");
       } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${response.reasonPhrase ?? 'Unknown'}"),
-          ),
+        SnackbarHelper.showError(
+          "Error",
+          "Error: ${response.reasonPhrase ?? 'Unknown'}",
         );
       }
 
       return respData;
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        SnackbarHelper.showError("Error", "Error: $e");
       }
       return null;
     } finally {

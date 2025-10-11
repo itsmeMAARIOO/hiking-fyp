@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
@@ -69,17 +70,13 @@ class MapProvider extends ChangeNotifier {
     _isRecording = true;
     _trailPoints = [];
     notifyListeners();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('GPS tracking started')));
+    SnackbarHelper.showSuccess('Info', 'GPS tracking started');
   }
 
   void stopRecording(BuildContext context) {
     _isRecording = false;
     notifyListeners();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('GPS tracking stopped')));
+    SnackbarHelper.showSuccess('Info', 'GPS tracking stopped');
   }
 
   void addTrailPoint(Map<String, double> point) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 
 class QuickActions extends StatelessWidget {
   final bool isTracking;
@@ -150,17 +151,9 @@ class QuickActions extends StatelessWidget {
                                     elevation: 0,
                                   ),
                                   onPressed: () {
-                                    Get.snackbar(
+                                    SnackbarHelper.showSuccess(
                                       "Location Shared",
                                       "Your location has been shared with your hiking group",
-                                      snackPosition: SnackPosition.BOTTOM,
-                                      backgroundColor: const Color(0xFF16A085),
-                                      colorText: Colors.white,
-                                      icon: const Icon(
-                                        Icons.check_circle,
-                                        color: Colors.white,
-                                      ),
-                                      duration: const Duration(seconds: 3),
                                     );
                                   },
                                   icon: const Icon(

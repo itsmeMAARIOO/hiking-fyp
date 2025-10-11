@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:hikingapp/presentation/pages/dashboard/animations/checkin_success_animation.dart';
 import 'package:hikingapp/presentation/pages/emergency/emergency_page.dart';
-import 'package:hikingapp/presentation/pages/group/create_group/group_page.dart';
+import 'package:hikingapp/presentation/pages/group/create_group/create_group_page.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_page.dart';
 import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
+import 'package:hikingapp/providers/group_provider.dart';
+import 'package:hikingapp/services/group_services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:hikingapp/presentation/pages/map/main_map/map_page.dart';
+import 'package:hikingapp/presentation/pages/group/trail_group/trail_group_page.dart';
 import 'widgets/status_card.dart';
 import 'widgets/weather_widget.dart';
 import 'widgets/dashboard_quick_actions.dart';
@@ -86,15 +90,105 @@ class DashboardPageContent extends StatefulWidget {
 class _DashboardPageContentState extends State<DashboardPageContent> {
   late final CheckInService checkInService;
   late final AuthProvider authProvider;
+  late final GroupServices groupService;
+
   bool _checkInTriggered = false;
 
   @override
   void initState() {
     super.initState();
     checkInService = CheckInService();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    groupService = GroupServices();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       authProvider = Provider.of<AuthProvider>(context, listen: false);
     });
+  }
+
+  Future<void> _checkPendingInvitations() async {
+    final userId = authProvider.userId;
+    final invite = await groupService.checkInvitation(userId!);
+
+    if (invite == null) {
+      if (!mounted) return;
+      SnackbarHelper.showSuccess(
+        'No Group Invitations',
+        'Please check again with the group leader',
+      );
+      return;
+    }
+
+    final groupName = invite['groupName'] ?? 'Unnamed Group';
+    final dynamic rawGroupId = invite['_id'];
+    // Handle Mongo Extended JSON ({"$oid": "..."}) or plain string
+    final String groupId = rawGroupId is Map && rawGroupId['\$oid'] != null
+        ? rawGroupId['\$oid'] as String
+        : rawGroupId?.toString() ?? '';
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Group Invitation"),
+        content: Text(
+          "You’ve been invited to join '$groupName'. Accept invitation?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'reject'),
+            child: const Text("Reject"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, 'accept'),
+            child: const Text("Accept"),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'accept') {
+      await groupService.respondInvitation(userId, groupId, 'active');
+      if (!mounted) return;
+      SnackbarHelper.showSuccess("Success", "Invitation accepted!");
+
+      // Prime the active group and navigate to the trail group page
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+
+      // CRITICAL: Fetch and set the active group data before navigation
+      try {
+        // Fetch the full group data from the backend
+        await groupProvider.fetchGroupById(groupId);
+
+        // Update location to join the active trail
+        await groupProvider.updateMyLocation(
+          groupId: groupId,
+          userId: auth.userId ?? '',
+          userName: auth.userName ?? '',
+        );
+
+        // Navigate to TrailGroupPage with the same provider instance
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                ChangeNotifierProvider.value(
+                  value: groupProvider,
+                  child: const TrailGroupPage(),
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
+        );
+      } catch (e) {
+        SnackbarHelper.showError("Error", "Failed to join group: $e");
+      }
+    } else if (result == 'reject') {
+      await groupService.respondInvitation(userId, groupId, 'declined');
+      if (!mounted) return;
+      SnackbarHelper.showSuccess("Info", "Invitation rejected.");
+    }
   }
 
   void _triggerCheckInAnimation() {
@@ -221,12 +315,12 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
                               // Group Members with Add logic
                               dashboardProvider.groupMembers == 0
                                   ? GestureDetector(
-                                      onTap: () => dashboardState?._goToTab(3),
+                                      onTap: _checkPendingInvitations,
                                       child: StatusCard(
-                                        icon: Icons.add,
+                                        icon: Icons.group_add,
                                         iconColor: Colors.grey,
                                         title: "Group Members",
-                                        status: "Add Group",
+                                        status: "View Invitation",
                                         statusColor: Colors.grey,
                                       ),
                                     )
@@ -339,127 +433,10 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
     );
   }
 
-  // Widget _buildHeader() {
-  //   return Container(
-  //     padding: const EdgeInsets.all(25),
-  //     decoration: BoxDecoration(
-  //       gradient: LinearGradient(
-  //         colors: [kDeepTeal, kDeepForest],
-  //         begin: Alignment.topLeft,
-  //         end: Alignment.bottomRight,
-  //       ),
-  //       boxShadow: [
-  //         BoxShadow(
-  //           color: kDeepTeal.withOpacity(0.5),
-  //           blurRadius: 15,
-  //           offset: const Offset(0, 5),
-  //         ),
-  //       ],
-  //     ),
-  //     child: Row(
-  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //       children: [
-  //         Column(
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             Text(
-  //               "Hiker Safety",
-  //               style: TextStyle(
-  //                 fontSize: 28,
-  //                 fontWeight: FontWeight.w700,
-  //                 color: Colors.white,
-  //                 shadows: [
-  //                   Shadow(blurRadius: 10, color: kDeepTeal.withOpacity(0.5)),
-  //                 ],
-  //               ),
-  //             ),
-  //             const SizedBox(height: 4),
-  //             Text(
-  //               "Stay safe on the trail",
-  //               style: TextStyle(
-  //                 fontSize: 14,
-  //                 color: kSoftMint,
-  //                 fontWeight: FontWeight.w500,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _buildHeader() {
     return const CommonHeader(
       title: 'Dashboard',
       subtitle: 'Stay safe on trail',
-    );
-  }
-
-  Widget _buildEnhancedStatusCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String status,
-    required Color statusColor,
-    required Gradient gradient,
-  }) {
-    return Container(
-      width: (MediaQuery.of(context).size.width - 52) / 2,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 20),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

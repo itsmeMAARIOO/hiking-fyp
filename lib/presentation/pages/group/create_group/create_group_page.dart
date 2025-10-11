@@ -10,6 +10,7 @@ import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:hikingapp/providers/group_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 // Note: We'll use the new 'NavigationButton' widget instead of 'NavigationButtons'
 import 'widgets/step_indicator_widgets.dart'
     hide kDarkPrimaryColor; // This file now contains NavigationButton
@@ -140,15 +141,8 @@ class _GroupPageState extends State<GroupPage> with TickerProviderStateMixin {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: kDarkPrimaryColor, // Use the dark sage color
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(24), // Larger margin for a modern look
-      ),
-    );
+    // Standardized snackbar usage
+    SnackbarHelper.showError('Error', message);
   }
 
   void _nextStep() {

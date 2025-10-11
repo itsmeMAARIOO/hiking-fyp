@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:hikingapp/presentation/pages/map/compass/compass_page.dart';
 
 class MapTools extends StatelessWidget {
@@ -9,23 +10,11 @@ class MapTools extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void downloadOfflineMap() {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Downloading offline map...'),
-          backgroundColor: Color(0xFF3E7B5B),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      SnackbarHelper.showSuccess('Info', 'Downloading offline map...');
     }
 
     void startNavigation() {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Starting navigation...'),
-          backgroundColor: Color(0xFF1C3F3F),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      SnackbarHelper.showSuccess('Info', 'Starting navigation...');
     }
 
     return Container(

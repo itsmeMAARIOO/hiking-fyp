@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 
 class EmergencyProvider extends ChangeNotifier {
   bool _sosActive = false;
@@ -15,12 +16,9 @@ class EmergencyProvider extends ChangeNotifier {
       _emergencyMode = true;
       notifyListeners();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'SOS ACTIVATED. Emergency alert sent to contacts and authorities.',
-          ),
-        ),
+      SnackbarHelper.showSuccess(
+        'Success',
+        'SOS ACTIVATED. Emergency alert sent to contacts and authorities.',
       );
 
       Future.delayed(const Duration(seconds: 30), () {
@@ -32,9 +30,7 @@ class EmergencyProvider extends ChangeNotifier {
       _sosActive = false;
       _emergencyMode = false;
       notifyListeners();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('SOS Deactivated')));
+      SnackbarHelper.showSuccess('Info', 'SOS Deactivated');
     }
   }
 
@@ -44,21 +40,13 @@ class EmergencyProvider extends ChangeNotifier {
   }
 
   void showFirstAid(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Opening offline first aid guide...\n• Basic wound care\n• Hypothermia\n• Snake bite\n• Emergency signaling',
-        ),
-        duration: Duration(seconds: 4),
-      ),
+    SnackbarHelper.showSuccess(
+      'Info',
+      'Opening offline first aid guide...\n• Basic wound care\n• Hypothermia\n• Snake bite\n• Emergency signaling',
     );
   }
 
   void callEmergency(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Calling local emergency services (911)...'),
-      ),
-    );
+    SnackbarHelper.showSuccess('Info', 'Calling local emergency services (911)...');
   }
 }
