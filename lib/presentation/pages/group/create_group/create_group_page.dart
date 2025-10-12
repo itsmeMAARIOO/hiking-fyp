@@ -14,6 +14,7 @@ import 'package:hikingapp/utils/snackbar_helper.dart';
 // Note: We'll use the new 'NavigationButton' widget instead of 'NavigationButtons'
 import 'widgets/step_indicator_widgets.dart'
     hide kDarkPrimaryColor; // This file now contains NavigationButton
+import 'widgets/group_exists_notice.dart';
 
 // The color constants from the previous file for the gradient
 const Color kDeepTeal = Color(0xFF1c3f3f);
@@ -29,7 +30,7 @@ class GroupPage extends StatefulWidget {
 }
 
 class _GroupPageState extends State<GroupPage> with TickerProviderStateMixin {
-  final GroupProvider _groupProvider = GroupProvider();
+  late GroupProvider _groupProvider;
   final TextEditingController _groupNameController = TextEditingController();
   final TextEditingController _trailNameController = TextEditingController();
 
@@ -52,6 +53,7 @@ class _GroupPageState extends State<GroupPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _groupProvider = Provider.of<GroupProvider>(context, listen: false);
     _stepTransitionController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -118,10 +120,7 @@ class _GroupPageState extends State<GroupPage> with TickerProviderStateMixin {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              ChangeNotifierProvider.value(
-                value: _groupProvider,
-                child: const TrailGroupPage(),
-              ),
+              const TrailGroupPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             // Apply a more dynamic transition here, like a ScaleTransition
             return ScaleTransition(
@@ -166,127 +165,154 @@ class _GroupPageState extends State<GroupPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _groupProvider,
-      child: Consumer<GroupProvider>(
-        builder: (context, provider, _) {
-          return Scaffold(
-            resizeToAvoidBottomInset:
-                false, // ✅ prevent shrinking when keyboard opens
-            body: Stack(
-              children: [
-                // 2. Main Content (Header, Steps, Step Indicator)
-                SafeArea(
-                  child: Column(
-                    children: [
-                      // Header
-                      CommonHeader(
-                        title: 'Trail Explorer',
-                        subtitle: 'Discover and record your hiking paths',
-                      ),
-                      Expanded(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(30),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: kDeepTeal.withOpacity(0.3),
-                                blurRadius: 30,
-                                spreadRadius: 5,
-                                offset: const Offset(0, -10),
-                              ),
-                            ],
-                          ),
+    return Consumer<GroupProvider>(
+      builder: (context, provider, _) {
+        // Keep the original header; swap body content when a group is minimized
+        return Scaffold(
+          resizeToAvoidBottomInset:
+              false, // ✅ prevent shrinking when keyboard opens
+          body: Stack(
+            children: [
+              // Background gradient for smoother transition
+              Container(decoration: const BoxDecoration(color: kDeepForest)),
 
-                          // ✅ Wrap the inner Column in SingleChildScrollView
-                          child: SingleChildScrollView(
-                            // This ensures the screen is scrollable when the keyboard pops up
-                            reverse: true,
-                            padding: EdgeInsets.only(
-                              bottom:
-                                  MediaQuery.of(context).viewInsets.bottom + 70,
-                            ),
-                            child: Column(
-                              children: [
-                                StepProgressIndicator(
-                                  currentStep: _currentStep,
-                                ),
-                                FadeTransition(
-                                  opacity: _fadeAnimation,
-                                  child: IndexedStack(
-                                    index: _currentStep,
-                                    children: [
-                                      Step1GroupDetails(
-                                        groupNameController:
-                                            _groupNameController,
-                                        trailNameController:
-                                            _trailNameController,
-                                      ),
-                                      Step2InviteHikers(
-                                        provider: provider,
-                                        selectedHikers: _selectedHikers,
-                                        isScanning: _isScanning,
-                                        onScan: _scanNearbyHikers,
-                                        onToggleSelection:
-                                            _toggleHikerSelection,
-                                      ),
-                                      Step3Confirm(
-                                        groupName: _groupNameController.text,
-                                        trailName: _trailNameController.text,
-                                        currentUserName: _currentUserName,
-                                        selectedHikers: _selectedHikers,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 3. Floating Navigation Button (Layered on top of content)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                            return SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 1),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              ),
-                            );
-                          },
-                      child: NavigationButton(
-                        key: ValueKey(_currentStep),
-                        currentStep: _currentStep,
-                        isLoading: provider.isLoading,
-                        onNext: _currentStep < 2 ? _nextStep : _createGroup,
-                        onBack: _previousStep,
+              // 2. Main Content (Header, Steps, Step Indicator)
+              SafeArea(
+                child: Column(
+                  children: [
+                    // Header
+                    CommonHeader(
+                      title: 'Trail Group',
+                      subtitle: 'Team up with friends',
+                      trailingWidget: Icon(
+                        Icons.shield,
+                        size: 32,
+                        color: Colors.white,
                       ),
                     ),
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.95),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(30),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kDeepTeal.withOpacity(0.3),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                              offset: const Offset(0, -10),
+                            ),
+                          ],
+                        ),
+
+                        // Swap body content when an active minimized group exists
+                        child:
+                            (provider.activeGroup != null &&
+                                provider.isTrailMinimized == true)
+                            ? SingleChildScrollView(
+                                reverse: false,
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom +
+                                      70,
+                                ),
+                                child: GroupExistsNotice(
+                                  group: provider.activeGroup!,
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                // Scroll normally from the top; still scrolls when keyboard opens
+                                reverse: false,
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom +
+                                      70,
+                                ),
+                                child: Column(
+                                  children: [
+                                    StepProgressIndicator(
+                                      currentStep: _currentStep,
+                                    ),
+                                    FadeTransition(
+                                      opacity: _fadeAnimation,
+                                      child: IndexedStack(
+                                        index: _currentStep,
+                                        children: [
+                                          Step1GroupDetails(
+                                            groupNameController:
+                                                _groupNameController,
+                                            trailNameController:
+                                                _trailNameController,
+                                          ),
+                                          Step2InviteHikers(
+                                            provider: provider,
+                                            selectedHikers: _selectedHikers,
+                                            isScanning: _isScanning,
+                                            onScan: _scanNearbyHikers,
+                                            onToggleSelection:
+                                                _toggleHikerSelection,
+                                          ),
+                                          Step3Confirm(
+                                            groupName:
+                                                _groupNameController.text,
+                                            trailName:
+                                                _trailNameController.text,
+                                            currentUserName: _currentUserName,
+                                            selectedHikers: _selectedHikers,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 3. Floating Navigation Button (Layered on top of content)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 1),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                    child:
+                        (provider.activeGroup != null &&
+                            provider.isTrailMinimized == true)
+                        ? const SizedBox.shrink()
+                        : NavigationButton(
+                            key: ValueKey(_currentStep),
+                            currentStep: _currentStep,
+                            isLoading: provider.isLoading,
+                            onNext: _currentStep < 2 ? _nextStep : _createGroup,
+                            onBack: _previousStep,
+                          ),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

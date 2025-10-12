@@ -15,6 +15,7 @@ import 'widgets/trail_actions.dart';
 import 'widgets/group_overview.dart';
 import 'widgets/group_members.dart';
 import 'widgets/trail_floating_actions.dart';
+import 'package:hikingapp/config/routes.dart';
 
 class TrailGroupPage extends StatefulWidget {
   const TrailGroupPage({super.key});
@@ -70,16 +71,22 @@ class _TrailGroupPageState extends State<TrailGroupPage>
 
     _initLocationTracking();
 
+    // Restore any saved stats from provider (after minimize/reopen)
+    _restoreSavedStats();
+
     // Auto-start tracking when entering page
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() => _isTracking = true);
-      _startTimer();
-
-      GroupServices.startTracking(
-        context: context,
-        userId: _currentUserId,
-        userName: _currentUserName,
-      );
+      // Respect previous tracking state
+      final wasTracking = _groupProvider.wasTracking;
+      setState(() => _isTracking = wasTracking);
+      if (wasTracking) {
+        _startTimer();
+        GroupServices.startTracking(
+          context: context,
+          userId: _currentUserId,
+          userName: _currentUserName,
+        );
+      }
 
       // Start short polling to detect trail completion instantly
       final groupId = _groupProvider.activeGroup?['_id']?.toString();
@@ -104,6 +111,29 @@ class _TrailGroupPageState extends State<TrailGroupPage>
             // ignore transient errors during polling
           }
         });
+      }
+    });
+  }
+
+  // Restore persisted trail stats from provider
+  void _restoreSavedStats() {
+    final p = _groupProvider;
+    setState(() {
+      _elapsedTime = Duration(seconds: p.elapsedSeconds);
+      _totalDistance = p.totalDistanceKm;
+      _currentSpeed = p.currentSpeedKmh;
+      _isTracking = p.wasTracking;
+      _lastUpdateTime = p.lastUpdateTime;
+      if (p.lastLat != null && p.lastLon != null) {
+        try {
+          _lastLocation = LocationData.fromMap({
+            'latitude': p.lastLat!,
+            'longitude': p.lastLon!,
+          });
+        } catch (_) {
+          // If factory is unavailable, skip reconstructing last location
+          _lastLocation = null;
+        }
       }
     });
   }
@@ -165,6 +195,17 @@ class _TrailGroupPageState extends State<TrailGroupPage>
     }
 
     _lastLocation = newLocation;
+
+    // Persist stats to provider so they survive minimize
+    _groupProvider.saveTrailStats(
+      elapsedSeconds: _elapsedTime.inSeconds,
+      totalDistanceKm: _totalDistance,
+      currentSpeedKmh: _currentSpeed,
+      lastLat: newLocation.latitude,
+      lastLon: newLocation.longitude,
+      lastUpdateTime: _lastUpdateTime,
+      wasTracking: _isTracking,
+    );
   }
 
   void _startTimer() {
@@ -172,6 +213,17 @@ class _TrailGroupPageState extends State<TrailGroupPage>
       setState(() {
         _elapsedTime += const Duration(seconds: 1);
       });
+
+      // Persist latest elapsed time regularly
+      _groupProvider.saveTrailStats(
+        elapsedSeconds: _elapsedTime.inSeconds,
+        totalDistanceKm: _totalDistance,
+        currentSpeedKmh: _currentSpeed,
+        lastLat: _lastLocation?.latitude,
+        lastLon: _lastLocation?.longitude,
+        lastUpdateTime: _lastUpdateTime,
+        wasTracking: _isTracking,
+      );
     });
   }
 
@@ -206,8 +258,21 @@ class _TrailGroupPageState extends State<TrailGroupPage>
     _pulseController.dispose();
     _timer?.cancel();
     _statusPoller?.cancel();
+
+    // Final save before leaving page (e.g., minimization)
+    _groupProvider.saveTrailStats(
+      elapsedSeconds: _elapsedTime.inSeconds,
+      totalDistanceKm: _totalDistance,
+      currentSpeedKmh: _currentSpeed,
+      lastLat: _lastLocation?.latitude,
+      lastLon: _lastLocation?.longitude,
+      lastUpdateTime: _lastUpdateTime,
+      wasTracking: _isTracking,
+    );
     // Use cached provider to avoid accessing context of a deactivated widget
-    _groupProvider.stopLocationUpdates();
+    if (!_groupProvider.isTrailMinimized) {
+      _groupProvider.stopLocationUpdates();
+    }
     super.dispose();
   }
 
@@ -242,23 +307,32 @@ class _TrailGroupPageState extends State<TrailGroupPage>
                   children: [
                     _buildHeader(provider),
                     Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 500),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.95),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(30),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: kDeepTeal.withOpacity(0.3),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                              offset: const Offset(0, -10),
+                      child: GestureDetector(
+                        onVerticalDragEnd: (details) {
+                          // Swipe down to minimize if velocity is downward
+                          if (details.primaryVelocity != null &&
+                              details.primaryVelocity! > 500) {
+                            _onMinimize(provider);
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 500),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.95),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(30),
                             ),
-                          ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: kDeepTeal.withOpacity(0.3),
+                                blurRadius: 30,
+                                spreadRadius: 5,
+                                offset: const Offset(0, -10),
+                              ),
+                            ],
+                          ),
+                          child: _buildTrailContent(provider),
                         ),
-                        child: _buildTrailContent(provider),
                       ),
                     ),
                   ],
@@ -456,7 +530,70 @@ class _TrailGroupPageState extends State<TrailGroupPage>
                 ),
               ),
             ),
+          const SizedBox(width: 12),
+          _MinimizeButton(onMinimize: () => _onMinimize(provider)),
         ],
+      ),
+    );
+  }
+
+  void _onMinimize(GroupProvider provider) {
+    // Navigate first to avoid rebuilding this heavy page during provider updates
+    Get.offNamed(AppRoutes.dashboard);
+    // Defer provider updates to the next microtask to reduce jank
+    Future.microtask(() {
+      _groupProvider.saveTrailStats(
+        elapsedSeconds: _elapsedTime.inSeconds,
+        totalDistanceKm: _totalDistance,
+        currentSpeedKmh: _currentSpeed,
+        lastLat: _lastLocation?.latitude,
+        lastLon: _lastLocation?.longitude,
+        lastUpdateTime: _lastUpdateTime,
+        wasTracking: _isTracking,
+      );
+      _groupProvider.setTrailMinimized(true);
+      // SnackbarHelper.showSuccess('Minimized', 'Trail minimized. Tap bubble to resume.');
+    });
+  }
+}
+
+class _MinimizeButton extends StatelessWidget {
+  final VoidCallback onMinimize;
+  const _MinimizeButton({required this.onMinimize});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onMinimize,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF16A085), Color(0xFF1ABC9C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF16A085).withOpacity(0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 6),
+              Icon(Icons.circle_outlined, color: Colors.white, size: 18),
+              SizedBox(width: 6),
+            ],
+          ),
+        ),
       ),
     );
   }

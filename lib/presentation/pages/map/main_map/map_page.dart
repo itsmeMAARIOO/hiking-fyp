@@ -97,12 +97,23 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
+          // Background gradient for smoother transition
+          Container(decoration: const BoxDecoration(color: kDeepForest)),
+
           // Main Content with layered design
           SafeArea(
             child: Column(
               children: [
                 // Header matching create group page style
-                _buildHeader(),
+                CommonHeader(
+                  title: 'Trail Explorer',
+                  subtitle: 'Discover hiking paths',
+                  trailingWidget: Icon(
+                    Icons.shield,
+                    size: 32,
+                    color: Colors.white,
+                  ),
+                ),
 
                 // Map Section with rounded top container
                 Expanded(
@@ -113,14 +124,6 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(30),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: kDeepTeal.withOpacity(0.3),
-                          blurRadius: 30,
-                          spreadRadius: 5,
-                          offset: const Offset(0, -10),
-                        ),
-                      ],
                     ),
                     child: Column(
                       children: [
@@ -287,13 +290,6 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return const CommonHeader(
-      title: 'Trail Explorer',
-      subtitle: 'Discover and record your hiking paths',
     );
   }
 

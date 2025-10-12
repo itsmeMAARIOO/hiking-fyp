@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:hikingapp/config/images/image_locations.dart';
 import 'package:hikingapp/config/routes.dart';
+import 'package:hikingapp/presentation/pages/emergency/emergency_page.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_controller.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/widgets/emergency_contact_card.dart';
 import 'package:provider/provider.dart';
@@ -57,12 +58,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF16A085).withOpacity(0.9),
-                          const Color(0xFF8B4513).withOpacity(0.7),
-                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [kDeepTeal, kDeepForest],
                       ),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(24),

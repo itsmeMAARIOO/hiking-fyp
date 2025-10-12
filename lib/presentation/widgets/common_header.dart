@@ -1,7 +1,7 @@
 // lib/presentation/widgets/common_header.dart
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // Color palette for the redesigned UI
 const Color kSoftMint = Color(0xFFa0d5b9);
@@ -27,43 +27,35 @@ class CommonHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
+    // Ensure the status bar color matches the header
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: kDeepTeal,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: kDeepTeal,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
+
     return Container(
       decoration: BoxDecoration(
         gradient: showBackgroundGradient
             ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [kDeepTeal, kDeepForest.withOpacity(0.9)],
               )
             : null,
-        boxShadow: showBackgroundGradient
-            ? [
-                BoxShadow(
-                  color: kDeepTeal.withOpacity(0.5),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ]
-            : null,
       ),
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.08),
-                  Colors.white.withOpacity(0.02),
-                ],
-              ),
-              border: Border(
-                bottom: BorderSide(color: kSoftMint.withOpacity(0.1), width: 1),
-              ),
-            ),
+      child: Column(
+        children: [
+          // Status bar background
+          Container(height: statusBarHeight, color: kDeepTeal),
+          // Header content
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -74,90 +66,78 @@ class CommonHeader extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title with gradient and subtle shadow
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.8,
-                                foreground: Paint()
-                                  ..shader =
-                                      LinearGradient(
-                                        colors: [
-                                          Colors.white,
-                                          kSoftMint.withOpacity(0.9),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ).createShader(
-                                        const Rect.fromLTWH(0, 0, 200, 50),
-                                      ),
-                              ),
+                          // Title
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -1.2,
+                              height: 1.0,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black38,
+                                  blurRadius: 12,
+                                  offset: Offset(2, 3),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          // Subtitle with modern styling
+                          const SizedBox(height: 12),
+                          // Subtitle
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                              horizontal: 18,
+                              vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: kSoftMint.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              color: kSoftMint.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: kSoftMint.withOpacity(0.2),
+                                color: kSoftMint.withOpacity(0.4),
+                                width: 2.0,
                               ),
                             ),
                             child: Text(
                               subtitle,
-                              style: TextStyle(
-                                color: kSoftMint,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.3,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.4,
+                                height: 1.1,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Trailing widget with glass effect
+                    // Trailing widget
                     if (trailingWidget != null)
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withOpacity(0.3),
+                            width: 2.0,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: kDeepTeal.withOpacity(0.2),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
                         ),
                         child: trailingWidget,
                       ),
                   ],
                 ),
-                // Error banner with modern design
+                // Error banner
                 if (lastError != null) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   GlassErrorBanner(message: lastError!),
                 ],
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -165,49 +145,30 @@ class CommonHeader extends StatelessWidget {
 
 class GlassErrorBanner extends StatelessWidget {
   final String message;
-
   const GlassErrorBanner({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withOpacity(0.3), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withOpacity(0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: Colors.red.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.red.withOpacity(0.4), width: 2.0),
       ),
       child: Row(
         children: [
-          // Animated warning icon
+          // Warning icon
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.red.shade400, Colors.red.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Colors.red.shade500,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withOpacity(0.4),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: const Icon(
-              Icons.warning_amber_rounded,
+              Icons.warning_rounded,
               color: Colors.white,
-              size: 20,
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
@@ -219,177 +180,22 @@ class GlassErrorBanner extends StatelessWidget {
                 Text(
                   'Attention Required',
                   style: TextStyle(
-                    color: Colors.red.shade100,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  message,
-                  style: TextStyle(
-                    color: Colors.red.shade200,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Close/dismiss indicator
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.info_outline_rounded,
-              color: Colors.red.shade300,
-              size: 16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Alternative minimalist version
-class MinimalHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData? icon;
-
-  const MinimalHeader({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (icon != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [kMediumSage, kDeepForest],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: kMediumSage.withOpacity(0.4),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 16),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 28,
+                    color: Colors.red.shade50,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: kDeepTeal,
-                    letterSpacing: -0.5,
+                    letterSpacing: 0.5,
+                    height: 1.1,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  message,
                   style: TextStyle(
-                    color: kDeepTeal.withOpacity(0.6),
+                    color: Colors.red.shade100,
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
                     letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Floating header variant for cards
-class CardHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color accentColor;
-
-  const CardHeader({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    this.accentColor = kMediumSage,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [accentColor.withOpacity(0.1), accentColor.withOpacity(0.05)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accentColor.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: accentColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: kDeepTeal,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: kDeepTeal.withOpacity(0.6),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

@@ -15,13 +15,76 @@ class GroupProvider with ChangeNotifier {
   Map<String, dynamic>? _activeGroup;
   List<GroupMember> _nearbyMembers = [];
   Timer? _locationTimer;
+  Timer? _statsTimer; // background elapsed-time timer
   String? _lastError;
   bool _isUpdatingLocation = false;
+  bool _isTrailMinimized = false;
+
+  // ----------------------------
+  // ✅ Persisted trail stats (for minimize/restore)
+  // ----------------------------
+  int _elapsedSeconds = 0; // total elapsed tracking time
+  double _totalDistanceKm = 0.0; // accumulated distance
+  double _currentSpeedKmh = 0.0; // last computed speed
+  double? _lastLat; // last coordinate used for distance calc
+  double? _lastLon;
+  DateTime? _lastUpdateTime; // last tick time for speed calc
+  bool _wasTracking = true; // whether tracking was active
 
   bool get isLoading => _isLoading;
   Map<String, dynamic>? get activeGroup => _activeGroup;
   List<GroupMember> get nearbyMembers => _nearbyMembers;
   String? get lastError => _lastError;
+  bool get isTrailMinimized => _isTrailMinimized;
+
+  // Expose persisted stats
+  int get elapsedSeconds => _elapsedSeconds;
+  double get totalDistanceKm => _totalDistanceKm;
+  double get currentSpeedKmh => _currentSpeedKmh;
+  double? get lastLat => _lastLat;
+  double? get lastLon => _lastLon;
+  DateTime? get lastUpdateTime => _lastUpdateTime;
+  bool get wasTracking => _wasTracking;
+
+  // ----------------------------
+  // ✅ Minimize / restore trail state
+  // ----------------------------
+  void setTrailMinimized(bool minimized) {
+    _isTrailMinimized = minimized;
+    notifyListeners();
+  }
+
+  /// Save trail stats so UI can restore after minimize/reopen
+  void saveTrailStats({
+    required int elapsedSeconds,
+    required double totalDistanceKm,
+    required double currentSpeedKmh,
+    double? lastLat,
+    double? lastLon,
+    DateTime? lastUpdateTime,
+    required bool wasTracking,
+  }) {
+    _elapsedSeconds = elapsedSeconds;
+    _totalDistanceKm = totalDistanceKm;
+    _currentSpeedKmh = currentSpeedKmh;
+    _lastLat = lastLat;
+    _lastLon = lastLon;
+    _lastUpdateTime = lastUpdateTime;
+    _wasTracking = wasTracking;
+    notifyListeners();
+  }
+
+  /// Clear persisted stats (e.g., on trail end or leaving group)
+  void clearTrailStats() {
+    _elapsedSeconds = 0;
+    _totalDistanceKm = 0.0;
+    _currentSpeedKmh = 0.0;
+    _lastLat = null;
+    _lastLon = null;
+    _lastUpdateTime = null;
+    _wasTracking = true;
+    notifyListeners();
+  }
 
   // ----------------------------
   // ✅ Utility: Get current GPS position safely
@@ -152,7 +215,9 @@ class GroupProvider with ChangeNotifier {
         final data = jsonDecode(response.body);
         _activeGroup = data['group'];
         _lastError = null;
-        debugPrint("📍 Updated location: ${pos.latitude}, ${pos.longitude}");
+        debugPrint(
+          "📍 Updated location:  $userName, ${pos.latitude}, ${pos.longitude}",
+        );
       } else {
         _lastError = "Failed to update location (${response.statusCode})";
       }
@@ -179,6 +244,11 @@ class GroupProvider with ChangeNotifier {
       updateMyLocation(groupId: groupId, userId: userId, userName: userName);
     });
 
+    // Start background stats timer so elapsed time continues while minimized
+    _startStatsTimer();
+    _wasTracking = true; // mark tracking active
+    notifyListeners();
+
     debugPrint("🔄 Started location updates every 30s");
   }
 
@@ -188,6 +258,8 @@ class GroupProvider with ChangeNotifier {
   void stopLocationUpdates() {
     _locationTimer?.cancel();
     _locationTimer = null;
+    _stopStatsTimer();
+    _wasTracking = false; // mark paused tracking
     debugPrint("⏸️ Stopped location updates");
   }
 
@@ -251,6 +323,7 @@ class GroupProvider with ChangeNotifier {
         stopLocationUpdates();
         _activeGroup = null;
         _nearbyMembers = [];
+        clearTrailStats();
         _lastError = null;
         debugPrint("👋 Left group successfully");
       } else {
@@ -324,8 +397,10 @@ class GroupProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         stopLocationUpdates();
         final data = jsonDecode(response.body);
-        _activeGroup = data['group']; // keep updated group to expose completed status
+        _activeGroup =
+            data['group']; // keep updated group to expose completed status
         _nearbyMembers = [];
+        clearTrailStats();
         _lastError = null;
         debugPrint("🏁 Trail completed successfully for all members");
         return true;
@@ -360,6 +435,28 @@ class GroupProvider with ChangeNotifier {
   @override
   void dispose() {
     _locationTimer?.cancel();
+    _statsTimer?.cancel();
     super.dispose();
+  }
+
+  // ----------------------------
+  // ✅ Internal: stats timer to keep elapsed time running in background
+  // ----------------------------
+  void _startStatsTimer() {
+    _statsTimer?.cancel();
+    _statsTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _elapsedSeconds += 1;
+      // keep last update time in sync for potential speed calc continuity
+      _lastUpdateTime = DateTime.now();
+      // Notify listeners so any UI (e.g., bubble or page) can reflect time
+      notifyListeners();
+    });
+    debugPrint("⏱️ Started stats timer");
+  }
+
+  void _stopStatsTimer() {
+    _statsTimer?.cancel();
+    _statsTimer = null;
+    debugPrint("⏱️ Stopped stats timer");
   }
 }

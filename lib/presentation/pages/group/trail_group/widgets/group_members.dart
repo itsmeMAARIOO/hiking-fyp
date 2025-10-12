@@ -1,5 +1,10 @@
 // lib/presentation/pages/group/active_trail/widgets/group_members.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:hikingapp/providers/map_provider.dart';
+import 'package:hikingapp/providers/auth_provider.dart';
+import 'member_route_popup.dart';
 
 class GroupMembers extends StatelessWidget {
   final List members;
@@ -54,17 +59,24 @@ class GroupMembers extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        ...members.map((member) => _buildMemberCard(member)).toList(),
+        ...members.map((member) => _buildMemberCard(context, member)).toList(),
       ],
     );
   }
 
-  Widget _buildMemberCard(dynamic member) {
+  Widget _buildMemberCard(BuildContext context, dynamic member) {
     final hasLocation =
         member['latitude'] != null && member['longitude'] != null;
     final isLeader = member['role'] == 'leader';
     final lastUpdated = DateTime.tryParse(member['lastUpdated'] ?? '');
     final timeAgo = lastUpdated != null ? _getTimeAgo(lastUpdated) : 'Unknown';
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final String? currentUserId = auth.userId;
+    final String? memberUserId = (member['userId'] ?? member['id'])?.toString();
+    final bool isCurrentUser =
+        currentUserId != null &&
+        memberUserId != null &&
+        currentUserId == memberUserId;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -196,17 +208,80 @@ class GroupMembers extends StatelessWidget {
               ],
             ),
           ),
-          if (hasLocation)
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kDeepTeal.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
+          if (hasLocation && !isCurrentUser)
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                final mapProvider = Provider.of<MapProvider>(
+                  context,
+                  listen: false,
+                );
+                final current = mapProvider.currentLocation;
+                if (current == null) {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => const AlertDialog(
+                      title: Text('Location Unavailable'),
+                      content: Text(
+                        'Your current location is not available yet.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                final double? targetLat = _parseDouble(member['latitude']);
+                final double? targetLng = _parseDouble(member['longitude']);
+                if (targetLat == null || targetLng == null) {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => const AlertDialog(
+                      title: Text('Member Location Unavailable'),
+                      content: Text('Cannot determine member\'s location.'),
+                    ),
+                  );
+                  return;
+                }
+
+                final currentLatLng = LatLng(
+                  current['latitude']!,
+                  current['longitude']!,
+                );
+                final memberLatLng = LatLng(targetLat, targetLng);
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (ctx) => MemberRoutePopup(
+                    currentLocation: currentLatLng,
+                    memberLocation: memberLatLng,
+                    memberName: member['name'] ?? 'Member',
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: kDeepTeal.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.explore_rounded,
+                  color: kDeepForest,
+                  size: 20,
+                ),
               ),
-              child: Icon(Icons.explore_rounded, color: kDeepForest, size: 20),
             ),
         ],
       ),
     );
+  }
+
+  double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

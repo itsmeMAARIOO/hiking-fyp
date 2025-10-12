@@ -68,7 +68,9 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: Stack(
+        children: [IndexedStack(index: _currentIndex, children: _pages)],
+      ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabTap,
@@ -119,7 +121,6 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
 
     final groupName = invite['groupName'] ?? 'Unnamed Group';
     final dynamic rawGroupId = invite['_id'];
-    // Handle Mongo Extended JSON ({"$oid": "..."}) or plain string
     final String groupId = rawGroupId is Map && rawGroupId['\$oid'] != null
         ? rawGroupId['\$oid'] as String
         : rawGroupId?.toString() ?? '';
@@ -129,7 +130,7 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
       builder: (context) => AlertDialog(
         title: const Text("Group Invitation"),
         content: Text(
-          "You’ve been invited to join '$groupName'. Accept invitation?",
+          "You've been invited to join '$groupName'. Accept invitation?",
         ),
         actions: [
           TextButton(
@@ -149,23 +150,17 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
       if (!mounted) return;
       SnackbarHelper.showSuccess("Success", "Invitation accepted!");
 
-      // Prime the active group and navigate to the trail group page
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
       final auth = Provider.of<AuthProvider>(context, listen: false);
 
-      // CRITICAL: Fetch and set the active group data before navigation
       try {
-        // Fetch the full group data from the backend
         await groupProvider.fetchGroupById(groupId);
-
-        // Update location to join the active trail
         await groupProvider.updateMyLocation(
           groupId: groupId,
           userId: auth.userId ?? '',
           userName: auth.userName ?? '',
         );
 
-        // Navigate to TrailGroupPage with the same provider instance
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -203,226 +198,291 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
   @override
   Widget build(BuildContext context) {
     final dashboardProvider = Provider.of<DashboardProvider>(context);
-    final dashboardState = context
-        .findAncestorStateOfType<_DashboardPageState>();
 
     return Stack(
       children: [
+        // Background gradient for smoother transition
+        Container(decoration: const BoxDecoration(color: kDeepForest)),
+
         // Content Layer
         SafeArea(
           child: Column(
             children: [
-              // Header matching map page style
-              _buildHeader(),
+              // Header with improved fade transition
+              Stack(
+                children: [
+                  const CommonHeader(
+                    title: 'Dashboard',
+                    subtitle: 'Stay safe on trail',
+                    trailingWidget: Icon(
+                      Icons.shield,
+                      size: 32,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
 
-              // Main Content Container with rounded top
+              // Main Content Container with improved overlap and animation
               Expanded(
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 500),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  // ✅ Solid color to remove bleed-through
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.95),
+                    color: Colors.white,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(30),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: kDeepTeal.withOpacity(0.3),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                        offset: const Offset(0, -10),
-                      ),
-                    ],
                   ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
-
-                        // Weather Widget
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: WeatherWidget(),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Status Grid
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              // location tracking status
-                              StatusCard(
-                                icon: Icons.location_pin,
-                                iconColor: dashboardProvider.isTracking
-                                    ? kDeepForest
-                                    : kMediumSage,
-                                title: "GPS Tracking",
-                                status: dashboardProvider.isTracking
-                                    ? "Active"
-                                    : "Inactive",
-                                statusColor: dashboardProvider.isTracking
-                                    ? kDeepForest
-                                    : Colors.grey,
-                              ),
-                              // connectivity status
-                              StatusCard(
-                                icon: dashboardProvider.isOnline
-                                    ? Icons.wifi
-                                    : Icons.wifi_off,
-                                iconColor: dashboardProvider.isOnline
-                                    ? kDeepForest
-                                    : const Color(0xFFFF6B6B),
-                                title: "Connectivity",
-                                status: dashboardProvider.isOnline
-                                    ? "Online"
-                                    : "Offline",
-                                statusColor: dashboardProvider.isOnline
-                                    ? kDeepForest
-                                    : const Color(0xFFFF6B6B),
-                              ),
-                              // check in status
-                              GestureDetector(
-                                onTap: () async {
-                                  await checkInService.handleCheckInTripleTap(
-                                    dashboardProvider,
-                                    context,
-                                  );
-                                  _triggerCheckInAnimation();
-                                },
-                                child: CheckInSuccessAnimation(
-                                  trigger: _checkInTriggered,
-                                  child: StatusCard(
-                                    icon: Icons.access_time,
-                                    iconColor: kDeepForest,
-                                    title: "Last Check-in",
-                                    status:
-                                        dashboardProvider.lastCheckIn != null
-                                        ? DateFormat(
-                                            'dd-MMM-yy - HH:mm',
-                                          ).format(
-                                            dashboardProvider.lastCheckIn!,
-                                          )
-                                        : 'No check-in',
-                                    statusColor: kDeepForest,
-                                  ),
-                                ),
-                              ),
-                              // Group Members with Add logic
-                              dashboardProvider.groupMembers == 0
-                                  ? GestureDetector(
-                                      onTap: _checkPendingInvitations,
-                                      child: StatusCard(
-                                        icon: Icons.group_add,
-                                        iconColor: Colors.grey,
-                                        title: "Group Members",
-                                        status: "View Invitation",
-                                        statusColor: Colors.grey,
-                                      ),
-                                    )
-                                  : StatusCard(
-                                      icon: Icons.group,
-                                      iconColor: kMediumSage,
-                                      title: "Group Members",
-                                      status:
-                                          "${dashboardProvider.groupMembers} Active",
-                                      statusColor: kMediumSage,
-                                    ),
-                            ],
+                  clipBehavior: Clip.hardEdge, // ✅ Ensures no overflow shadows
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints
+                                .maxHeight, // ✅ fills all vertical space
                           ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Quick Actions
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: kDeepTeal.withOpacity(0.1),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: QuickActions(
-                              isTracking: dashboardProvider.isTracking,
-                              onTrackingToggle:
-                                  dashboardProvider.toggleTracking,
-                              onCheckIn: () =>
-                                  dashboardProvider.loadLastCheckIn(context),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Safety Tip
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: kSoftMint.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      Icons.lightbulb_outline_rounded,
-                                      color: kDeepForest,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    "Today's Safety Tip",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: kDeepTeal,
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(height: 20),
+
+                              // Weather widget with fade-in
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 600),
+                                opacity: 1.0,
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 20),
+                                  child: WeatherWidget(),
+                                ),
                               ),
-                              const SizedBox(height: 12),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: kSoftMint.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: kSoftMint.withOpacity(0.3),
-                                    width: 1,
+
+                              const SizedBox(height: 28),
+
+                              // Status cards
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 400,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      child: StatusCard(
+                                        icon: Icons.location_pin,
+                                        iconColor: dashboardProvider.isTracking
+                                            ? kDeepForest
+                                            : kMediumSage,
+                                        title: "GPS Tracking",
+                                        status: dashboardProvider.isTracking
+                                            ? "Active"
+                                            : "Inactive",
+                                        statusColor:
+                                            dashboardProvider.isTracking
+                                            ? kDeepForest
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 500,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      child: StatusCard(
+                                        icon: dashboardProvider.isOnline
+                                            ? Icons.wifi
+                                            : Icons.wifi_off,
+                                        iconColor: dashboardProvider.isOnline
+                                            ? kDeepForest
+                                            : const Color(0xFFFF6B6B),
+                                        title: "Connectivity",
+                                        status: dashboardProvider.isOnline
+                                            ? "Online"
+                                            : "Offline",
+                                        statusColor: dashboardProvider.isOnline
+                                            ? kDeepForest
+                                            : const Color(0xFFFF6B6B),
+                                      ),
+                                    ),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 600,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          await checkInService
+                                              .handleCheckInTripleTap(
+                                                dashboardProvider,
+                                                context,
+                                              );
+                                          _triggerCheckInAnimation();
+                                        },
+                                        child: CheckInSuccessAnimation(
+                                          trigger: _checkInTriggered,
+                                          child: StatusCard(
+                                            icon: Icons.access_time,
+                                            iconColor: kDeepForest,
+                                            title: "Last Check-in",
+                                            status:
+                                                dashboardProvider.lastCheckIn !=
+                                                    null
+                                                ? DateFormat(
+                                                    'dd-MMM-yy - HH:mm',
+                                                  ).format(
+                                                    dashboardProvider
+                                                        .lastCheckIn!,
+                                                  )
+                                                : 'No check-in',
+                                            statusColor: kDeepForest,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 700,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      child: dashboardProvider.groupMembers == 0
+                                          ? GestureDetector(
+                                              onTap: _checkPendingInvitations,
+                                              child: StatusCard(
+                                                icon: Icons.group_add,
+                                                iconColor: Colors.grey,
+                                                title: "Group Members",
+                                                status: "View Invitation",
+                                                statusColor: Colors.grey,
+                                              ),
+                                            )
+                                          : StatusCard(
+                                              icon: Icons.group,
+                                              iconColor: kMediumSage,
+                                              title: "Group Members",
+                                              status:
+                                                  "${dashboardProvider.groupMembers} Active",
+                                              statusColor: kMediumSage,
+                                            ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              // Quick Actions
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 800),
+                                opacity: 1.0,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: kDeepTeal.withOpacity(0.1),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: QuickActions(
+                                      isTracking: dashboardProvider.isTracking,
+                                      onTrackingToggle:
+                                          dashboardProvider.toggleTracking,
+                                      onCheckIn: () => dashboardProvider
+                                          .loadLastCheckIn(context),
+                                    ),
                                   ),
                                 ),
-                                padding: const EdgeInsets.all(20),
-                                child: Text(
-                                  "Always inform someone about your planned route and expected return time before heading out. Carry essential supplies and check weather conditions regularly.",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: kDeepTeal.withOpacity(0.8),
-                                    height: 1.5,
-                                    fontWeight: FontWeight.w500,
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              // Safety Tip section
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 1000),
+                                opacity: 1.0,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: kSoftMint.withOpacity(0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(
+                                              Icons.lightbulb_outline_rounded,
+                                              color: kDeepForest,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Text(
+                                            "Today's Safety Tip",
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: kDeepTeal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: kSoftMint.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          border: Border.all(
+                                            color: kSoftMint.withOpacity(0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.all(20),
+                                        child: Text(
+                                          "Always inform someone about your planned route and expected return time before heading out. Carry essential supplies and check weather conditions regularly.",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: kDeepTeal.withOpacity(0.8),
+                                            height: 1.5,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -430,13 +490,6 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildHeader() {
-    return const CommonHeader(
-      title: 'Dashboard',
-      subtitle: 'Stay safe on trail',
     );
   }
 }
