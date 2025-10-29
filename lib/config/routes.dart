@@ -5,6 +5,8 @@ import 'package:hikingapp/presentation/pages/group/create_group/create_group_pag
 import 'package:hikingapp/presentation/pages/map/main_map/map_page.dart';
 import 'package:hikingapp/presentation/pages/profile/edit_profile/edit_profile_page.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_page.dart';
+import 'package:hikingapp/presentation/pages/trail/solo/solo_trail_name_page.dart';
+import 'package:hikingapp/presentation/pages/trail/solo/solo_trail_page.dart';
 import '../presentation/pages/auth/login/login_page.dart';
 import '../presentation/pages/dashboard/dashboard_page.dart';
 import '../presentation/pages/splash/splash_page.dart';
@@ -20,6 +22,8 @@ class AppRoutes {
   static const emergency = '/emergency';
   static const profile = '/profile';
   static const editProfile = '/editProfile';
+  static const soloTrailName = '/soloTrailName';
+  static const soloTrail = '/soloTrail';
 
   static final pages = [
     GetPage(name: splash, page: () => SplashPage()),
@@ -31,5 +35,7 @@ class AppRoutes {
     GetPage(name: group, page: () => const GroupPage()),
     GetPage(name: profile, page: () => const ProfilePage()),
     GetPage(name: editProfile, page: () => const EditProfileScreen()),
+    GetPage(name: soloTrailName, page: () => const SoloTrailNamePage()),
+    GetPage(name: soloTrail, page: () => const SoloTrailPage()),
   ];
 }

@@ -8,6 +8,7 @@ import 'package:hikingapp/presentation/pages/group/create_group/create_group_pag
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:hikingapp/providers/group_provider.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class GroupServices {
   final String baseUrl = ApiConfig.baseUrl;

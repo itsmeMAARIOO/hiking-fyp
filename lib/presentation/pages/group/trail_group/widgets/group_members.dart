@@ -4,15 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:hikingapp/providers/map_provider.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import 'member_route_popup.dart';
 
 class GroupMembers extends StatelessWidget {
   final List members;
-
-  static const Color kDeepTeal = Color(0xFF1c3f3f);
-  static const Color kSoftMint = Color(0xFFa0d5b9);
-  static const Color kMediumSage = Color(0xFF6baf89);
-  static const Color kDeepForest = Color(0xFF3e7b5b);
 
   const GroupMembers({super.key, required this.members});
 

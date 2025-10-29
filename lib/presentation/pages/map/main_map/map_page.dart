@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:get/get.dart';
+import 'package:hikingapp/config/routes.dart';
 import 'package:provider/provider.dart';
 import 'package:hikingapp/providers/map_provider.dart';
 import 'package:hikingapp/presentation/widgets/common_header.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import 'widgets/location_display.dart';
-import 'widgets/trail_recorder.dart';
 import 'widgets/map_tools.dart';
+import 'widgets/main_map_widget.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -98,7 +101,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
       body: Stack(
         children: [
           // Background gradient for smoother transition
-          Container(decoration: const BoxDecoration(color: kDeepForest)),
+          Container(decoration: BoxDecoration(color: kDeepForest)),
 
           // Main Content with layered design
           SafeArea(
@@ -106,7 +109,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
               children: [
                 // Header matching create group page style
                 CommonHeader(
-                  title: 'Trail Explorer',
+                  title: 'Explorer',
                   subtitle: 'Discover hiking paths',
                   trailingWidget: Icon(
                     Icons.shield,
@@ -173,82 +176,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
-                                child: FlutterMap(
-                                  mapController: _mapController,
-                                  options: MapOptions(
-                                    center: mapProvider.currentLocation != null
-                                        ? LatLng(
-                                            mapProvider
-                                                .currentLocation!['latitude']!,
-                                            mapProvider
-                                                .currentLocation!['longitude']!,
-                                          )
-                                        : const LatLng(3.1390, 101.6869),
-                                    zoom: 15,
-                                  ),
-                                  children: [
-                                    TileLayer(
-                                      urlTemplate:
-                                          "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-                                      subdomains: const ['a', 'b', 'c'],
-                                      userAgentPackageName:
-                                          'com.example.hikingapp',
-                                    ),
-                                    if (mapProvider.trailPoints.isNotEmpty)
-                                      PolylineLayer(
-                                        polylines: [
-                                          Polyline(
-                                            points: mapProvider.trailPoints
-                                                .map(
-                                                  (point) => LatLng(
-                                                    point['latitude']!,
-                                                    point['longitude']!,
-                                                  ),
-                                                )
-                                                .toList(),
-                                            strokeWidth: 5.0,
-                                            color: kMediumSage,
-                                            borderStrokeWidth: 2.0,
-                                            borderColor: Colors.white,
-                                          ),
-                                        ],
-                                      ),
-                                    if (mapProvider.currentLocation != null)
-                                      MarkerLayer(
-                                        markers: [
-                                          Marker(
-                                            width: 50,
-                                            height: 50,
-                                            point: LatLng(
-                                              mapProvider
-                                                  .currentLocation!['latitude']!,
-                                              mapProvider
-                                                  .currentLocation!['longitude']!,
-                                            ),
-                                            builder: (ctx) => Container(
-                                              decoration: BoxDecoration(
-                                                // color: Colors.white,
-                                                shape: BoxShape.circle,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.white
-                                                        .withOpacity(0.7),
-                                                    blurRadius: 15,
-                                                    offset: const Offset(0, 8),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Icon(
-                                                Icons.location_pin,
-                                                color: Colors.red,
-                                                size: 35,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
+                                child: MainMapWidget(mapController: _mapController),
                               ),
                             ),
                           ),
@@ -265,13 +193,24 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
           Positioned(
             left: 25,
             bottom: bottomPadding + 25,
-            child: _buildTrailRecorderButton(mapProvider),
+            child: TrailRecorderButton(
+              isRecording: mapProvider.isRecording,
+              isActive: _showTrailRecorder,
+              animationController: _buttonAnimationController,
+              scaleAnimation: _buttonScaleAnimation,
+              onTap: () => _togglePanel('trail'),
+            ),
           ),
 
           Positioned(
             right: 25,
             bottom: bottomPadding + 25,
-            child: _buildMapToolsButton(),
+            child: MapToolsButton(
+              isActive: _showMapTools,
+              animationController: _buttonAnimationController,
+              scaleAnimation: _buttonScaleAnimation,
+              onTap: () => _togglePanel('tools'),
+            ),
           ),
 
           // Animated Overlay Panels
@@ -279,213 +218,30 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
             Positioned(
               left: 25,
               bottom: bottomPadding + 100,
-              child: _buildTrailRecorderPanel(mapProvider),
+              child: TrailRecorderPanel(
+                panelAnimation: _panelAnimation,
+                isRecording: mapProvider.isRecording,
+                onStart: () {
+                  Get.toNamed(AppRoutes.soloTrailName);
+                  _togglePanel('trail');
+                },
+                onStop: () {
+                  mapProvider.stopRecording(context);
+                  _togglePanel('trail');
+                },
+                trailPoints: mapProvider.trailPoints,
+              ),
             ),
 
           if (_showMapTools)
             Positioned(
               right: 25,
               bottom: bottomPadding + 100,
-              child: _buildMapToolsPanel(),
+              child: MapToolsPanel(panelAnimation: _panelAnimation),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildTrailRecorderButton(MapProvider mapProvider) {
-    return AnimatedBuilder(
-      animation: _buttonAnimationController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _showTrailRecorder ? _buttonScaleAnimation.value : 1.0,
-          child: Container(
-            width: 65,
-            height: 65,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: mapProvider.isRecording
-                    ? [const Color(0xFFFF6B6B), const Color(0xFFFF8E8E)]
-                    : [kDeepForest, kMediumSage],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color:
-                      (mapProvider.isRecording
-                              ? const Color(0xFFFF6B6B)
-                              : kDeepForest)
-                          .withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => _togglePanel('trail'),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            mapProvider.isRecording
-                                ? Icons.radio_button_checked
-                                : Icons.alt_route_rounded,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                          if (mapProvider.isRecording) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMapToolsButton() {
-    return AnimatedBuilder(
-      animation: _buttonAnimationController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _showMapTools ? _buttonScaleAnimation.value : 1.0,
-          child: Container(
-            width: 65,
-            height: 65,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [kDeepTeal, Color(0xFF2C5D5D)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: kDeepTeal.withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => _togglePanel('tools'),
-                child: const Center(
-                  child: Icon(
-                    Icons.construction_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTrailRecorderPanel(MapProvider mapProvider) {
-    return AnimatedBuilder(
-      animation: _panelAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _panelAnimation.value) * 20),
-          child: Opacity(
-            opacity: _panelAnimation.value,
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 280,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kDeepTeal.withOpacity(0.2),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: TrailRecorder(
-                  isRecording: mapProvider.isRecording,
-                  onStart: () {
-                    mapProvider.startRecording(context);
-                    _togglePanel('trail');
-                  },
-                  onStop: () {
-                    mapProvider.stopRecording(context);
-                    _togglePanel('trail');
-                  },
-                  trailPoints: mapProvider.trailPoints,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMapToolsPanel() {
-    return AnimatedBuilder(
-      animation: _panelAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _panelAnimation.value) * 20),
-          child: Opacity(
-            opacity: _panelAnimation.value,
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 280,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kDeepTeal.withOpacity(0.2),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: const MapTools(),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }

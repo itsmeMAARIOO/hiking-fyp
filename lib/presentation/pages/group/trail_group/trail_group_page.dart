@@ -16,6 +16,8 @@ import 'widgets/group_overview.dart';
 import 'widgets/group_members.dart';
 import 'widgets/trail_floating_actions.dart';
 import 'package:hikingapp/config/routes.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
+import 'package:hikingapp/presentation/pages/trail/widget/solo_live_map.dart';
 
 class TrailGroupPage extends StatefulWidget {
   const TrailGroupPage({super.key});
@@ -44,11 +46,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
   LocationData? _lastLocation; // ✅ Store last known location
   DateTime? _lastUpdateTime; // ✅ For speed/duration tracking
 
-  // Color constants
-  static const Color kDeepTeal = Color(0xFF1c3f3f);
-  static const Color kSoftMint = Color(0xFFa0d5b9);
-  static const Color kMediumSage = Color(0xFF6baf89);
-  static const Color kDeepForest = Color(0xFF3e7b5b);
+  // Use centralized color palette from config/colors.dart
 
   String get _currentUserId {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -359,6 +357,8 @@ class _TrailGroupPageState extends State<TrailGroupPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SoloLiveMap(height: 220),
+          const SizedBox(height: 16),
           TrailStatistics(
             elapsedTime: _elapsedTime,
             totalDistance: _totalDistance,

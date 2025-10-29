@@ -1,20 +1,174 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
+import 'package:hikingapp/config/api_config.dart';
 import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:hikingapp/presentation/pages/map/compass/compass_page.dart';
+import 'package:hikingapp/presentation/pages/map/main_map/widgets/trail_recorder.dart';
+import 'package:hikingapp/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:hikingapp/presentation/pages/map/offline/offline_area_picker_page.dart';
+import 'package:hikingapp/presentation/pages/map/offline/offline_map_viewer_page.dart';
 
 class MapTools extends StatelessWidget {
   const MapTools({super.key});
 
   @override
   Widget build(BuildContext context) {
-    void downloadOfflineMap() {
-      SnackbarHelper.showSuccess('Info', 'Downloading offline map...');
+    Future<void> manageOfflineMaps() async {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final userId = auth.userId;
+      if (userId == null || userId.isEmpty) {
+        SnackbarHelper.showError(
+          'Login Required',
+          'Please login to manage offline maps',
+        );
+        return;
+      }
+
+      try {
+        final res = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/offline-map/list?userId=$userId'),
+        );
+        if (res.statusCode != 200) {
+          final data = jsonDecode(res.body);
+          SnackbarHelper.showError(
+            'Failed',
+            data['error'] ?? 'Unable to load maps',
+          );
+          return;
+        }
+        final data = jsonDecode(res.body);
+        List<dynamic> maps = (data['maps'] ?? []) as List<dynamic>;
+
+        await showDialog(
+          context: context,
+          builder: (ctx) {
+            return StatefulBuilder(
+              builder: (ctx, setState) {
+                return AlertDialog(
+                  title: const Text('Offline Maps'),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: maps.isEmpty
+                        ? const Text('No offline maps yet')
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: maps.length,
+                            itemBuilder: (context, index) {
+                              final m = maps[index] as Map<String, dynamic>;
+                              final status = m['status'] ?? 'pending';
+                              final progress =
+                                  '${m['downloaded'] ?? 0}/${m['tileCount'] ?? 0}';
+                              return ListTile(
+                                title: Text(m['regionName'] ?? 'Unnamed'),
+                                subtitle: Text(
+                                  'Status: $status  •  Tiles: $progress',
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (status == 'completed' &&
+                                        (m['baseUrl'] ?? '')
+                                            .toString()
+                                            .isNotEmpty)
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(ctx).pop();
+                                          Get.to(
+                                            () => OfflineMapViewerPage(
+                                              regionName:
+                                                  (m['regionName'] ?? 'Map')
+                                                      .toString(),
+                                              baseUrl: (m['baseUrl'] ?? '')
+                                                  .toString(),
+                                              neLat: (m['neLat'] ?? 0.0) * 1.0,
+                                              neLng: (m['neLng'] ?? 0.0) * 1.0,
+                                              swLat: (m['swLat'] ?? 0.0) * 1.0,
+                                              swLng: (m['swLng'] ?? 0.0) * 1.0,
+                                            ),
+                                          );
+                                        },
+                                        child: const Text('Open'),
+                                      ),
+                                    TextButton(
+                                      onPressed: () async {
+                                        final id = m['_id'];
+                                        final del = await http.delete(
+                                          Uri.parse(
+                                            '${ApiConfig.baseUrl}/offline-map/delete/$id',
+                                          ),
+                                        );
+                                        if (del.statusCode == 200) {
+                                          setState(() => maps.removeAt(index));
+                                          SnackbarHelper.showSuccess(
+                                            'Deleted',
+                                            'Offline map deleted',
+                                          );
+                                        } else {
+                                          SnackbarHelper.showError(
+                                            'Delete Failed',
+                                            del.body,
+                                          );
+                                        }
+                                      },
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      } catch (e) {
+        SnackbarHelper.showError('Error', e.toString());
+      }
     }
 
-    void startNavigation() {
-      SnackbarHelper.showSuccess('Info', 'Starting navigation...');
+    void downloadOfflineMap() {
+      showModalBottomSheet(
+        context: context,
+        showDragHandle: true,
+        builder: (ctx) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Offline Maps',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Get.to(() => const OfflineAreaPickerPage());
+                    },
+                    icon: const Icon(Icons.add_location_alt),
+                    label: const Text('Download New Area'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
     }
 
     return Container(
@@ -83,7 +237,9 @@ class MapTools extends StatelessWidget {
                 icon: Icons.download_done_rounded,
                 title: "Offline Maps",
                 color: Color(0xFF3E7B5B),
-                onPressed: downloadOfflineMap,
+                onPressed: () {
+                  Get.to(() => const OfflineAreaPickerPage());
+                },
                 iconGradient: const LinearGradient(
                   colors: [Color(0xFF3E7B5B), Color(0xFF4CAF89)],
                 ),
@@ -97,15 +253,6 @@ class MapTools extends StatelessWidget {
                 },
                 iconGradient: const LinearGradient(
                   colors: [Color(0xFF6BAF89), Color(0xFF8BC34A)],
-                ),
-              ),
-              _buildEnhancedToolButton(
-                icon: Icons.navigation_rounded,
-                title: "Navigate",
-                color: Color(0xFF1C3F3F),
-                onPressed: startNavigation,
-                iconGradient: const LinearGradient(
-                  colors: [Color(0xFF1C3F3F), Color(0xFF2C5D5D)],
                 ),
               ),
             ],
@@ -219,6 +366,255 @@ class MapTools extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class TrailRecorderButton extends StatelessWidget {
+  final bool isRecording;
+  final bool isActive; // controls scale when panel is visible
+  final AnimationController animationController;
+  final Animation<double> scaleAnimation;
+  final VoidCallback onTap;
+
+  const TrailRecorderButton({
+    super.key,
+    required this.isRecording,
+    required this.isActive,
+    required this.animationController,
+    required this.scaleAnimation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: isActive ? scaleAnimation.value : 1.0,
+          child: Container(
+            width: 65,
+            height: 65,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isRecording
+                    ? [const Color(0xFFFF6B6B), const Color(0xFFFF8E8E)]
+                    : [const Color(0xFF3E7B5B), const Color(0xFF6BAF89)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color:
+                      (isRecording
+                              ? const Color(0xFFFF6B6B)
+                              : const Color(0xFF3E7B5B))
+                          .withOpacity(0.4),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: onTap,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isRecording
+                                ? Icons.radio_button_checked
+                                : Icons.alt_route_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                          if (isRecording) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class MapToolsButton extends StatelessWidget {
+  final bool isActive; // controls scale when panel is visible
+  final AnimationController animationController;
+  final Animation<double> scaleAnimation;
+  final VoidCallback onTap;
+
+  const MapToolsButton({
+    super.key,
+    required this.isActive,
+    required this.animationController,
+    required this.scaleAnimation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: isActive ? scaleAnimation.value : 1.0,
+          child: Container(
+            width: 65,
+            height: 65,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1C3F3F), Color(0xFF2C5D5D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1C3F3F).withOpacity(0.4),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: onTap,
+                child: const Center(
+                  child: Icon(
+                    Icons.construction_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class TrailRecorderPanel extends StatelessWidget {
+  final Animation<double> panelAnimation;
+  final bool isRecording;
+  final VoidCallback onStart;
+  final VoidCallback onStop;
+  final List<dynamic> trailPoints;
+
+  const TrailRecorderPanel({
+    super.key,
+    required this.panelAnimation,
+    required this.isRecording,
+    required this.onStart,
+    required this.onStop,
+    required this.trailPoints,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: panelAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - panelAnimation.value) * 20),
+          child: Opacity(
+            opacity: panelAnimation.value,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 280,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1C3F3F).withOpacity(0.2),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: TrailRecorder(
+                  isRecording: isRecording,
+                  onStart: onStart,
+                  onStop: onStop,
+                  trailPoints: trailPoints,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class MapToolsPanel extends StatelessWidget {
+  final Animation<double> panelAnimation;
+
+  const MapToolsPanel({super.key, required this.panelAnimation});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: panelAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - panelAnimation.value) * 20),
+          child: Opacity(
+            opacity: panelAnimation.value,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1C3F3F).withOpacity(0.2),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: const MapTools(),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

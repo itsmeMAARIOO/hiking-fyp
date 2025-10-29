@@ -48,46 +48,6 @@ class TrailRecorder extends StatelessWidget {
                 ),
               ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isRecording
-                    ? const Color(0xFFFF6B6B).withOpacity(0.1)
-                    : const Color(0xFF6BAF89).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isRecording
-                      ? const Color(0xFFFF6B6B).withOpacity(0.3)
-                      : const Color(0xFF6BAF89).withOpacity(0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isRecording
-                          ? const Color(0xFFFF6B6B)
-                          : const Color(0xFF6BAF89),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isRecording ? "LIVE" : "NA",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isRecording
-                          ? const Color(0xFFFF6B6B)
-                          : const Color(0xFF6BAF89),
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
 
@@ -152,90 +112,79 @@ class TrailRecorder extends StatelessWidget {
           ),
         ),
 
-        // Enhanced Trail Stats
-        if (trailPoints.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAF9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF6BAF89).withOpacity(0.2),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem(
-                  icon: Icons.flag_rounded,
-                  label: "Points",
-                  value: "${trailPoints.length}",
-                ),
-                _buildStatItem(
-                  icon: Icons.linear_scale_rounded,
-                  label: "Distance",
-                  value: "2.4 mi",
-                ),
-                _buildStatItem(
-                  icon: Icons.timer_rounded,
-                  label: "Duration",
-                  value: "45:12",
-                ),
-              ],
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 8),
-
-        // Help text
-        Text(
-          "Record your hiking trail for navigation and sharing",
-          style: TextStyle(
-            fontSize: 12,
-            color: const Color(0xFF1C3F3F).withOpacity(0.5),
-            fontStyle: FontStyle.italic,
-          ),
-        ),
+        // // Enhanced Trail Stats
+        // if (trailPoints.isNotEmpty) ...[
+        //   const SizedBox(height: 20),
+        //   Container(
+        //     padding: const EdgeInsets.all(16),
+        //     decoration: BoxDecoration(
+        //       color: const Color(0xFFF8FAF9),
+        //       borderRadius: BorderRadius.circular(12),
+        //       border: Border.all(
+        //         color: const Color(0xFF6BAF89).withOpacity(0.2),
+        //       ),
+        //     ),
+        //     child: Row(
+        //       mainAxisAlignment: MainAxisAlignment.spaceAround,
+        //       children: [
+        //         _buildStatItem(
+        //           icon: Icons.flag_rounded,
+        //           label: "Points",
+        //           value: "${trailPoints.length}",
+        //         ),
+        //         _buildStatItem(
+        //           icon: Icons.linear_scale_rounded,
+        //           label: "Distance",
+        //           value: "2.4 mi",
+        //         ),
+        //         _buildStatItem(
+        //           icon: Icons.timer_rounded,
+        //           label: "Duration",
+        //           value: "45:12",
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ],
+        // const SizedBox(height: 8),
       ],
     );
   }
 
-  Widget _buildStatItem({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF6BAF89).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 16, color: const Color(0xFF3E7B5B)),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1C3F3F),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: const Color(0xFF1C3F3F).withOpacity(0.6),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildStatItem({
+  //   required IconData icon,
+  //   required String label,
+  //   required String value,
+  // }) {
+  //   return Column(
+  //     children: [
+  //       Container(
+  //         padding: const EdgeInsets.all(8),
+  //         decoration: BoxDecoration(
+  //           color: const Color(0xFF6BAF89).withOpacity(0.1),
+  //           shape: BoxShape.circle,
+  //         ),
+  //         child: Icon(icon, size: 16, color: const Color(0xFF3E7B5B)),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       Text(
+  //         value,
+  //         style: const TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w700,
+  //           color: Color(0xFF1C3F3F),
+  //         ),
+  //       ),
+  //       const SizedBox(height: 2),
+  //       Text(
+  //         label,
+  //         style: TextStyle(
+  //           fontSize: 11,
+  //           color: const Color(0xFF1C3F3F).withOpacity(0.6),
+  //           fontWeight: FontWeight.w500,
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 }

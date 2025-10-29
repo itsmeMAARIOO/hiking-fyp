@@ -92,7 +92,13 @@ class _AnimatedTemperatureWidgetState extends State<AnimatedTemperatureWidget>
                 children: [
                   Icon(widget.weatherIcon, size: 40),
                   const SizedBox(width: 12),
-                  _buildTemperatureDisplay(),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _buildTemperatureDisplay(),
+                    ),
+                  ),
                 ],
               ),
             ),

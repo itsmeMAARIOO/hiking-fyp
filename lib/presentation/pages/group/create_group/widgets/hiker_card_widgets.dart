@@ -1,16 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hikingapp/data/models/group_model.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 // --- Modern Nature-Inspired Color Palette ---
-// Soft mint green for backgrounds and subtle elements
-const Color kSoftMint = Color(0xFFA0D5B9);
-// Medium sage green for primary interactive elements
-const Color kMediumSage = Color(0xFF6BAF89);
-// Deep forest green for emphasis and important actions
-const Color kDeepForest = Color(0xFF3E7B5B);
-// Deep teal for text and icons
-const Color kDeepTeal = Color(0xFF1C3F3F);
+// Shared colors imported from centralized palette
 // Warning colors for alerts and groups
 const Color kWarningColor = Color(0xFFFFA726);
 const Color kWarningDark = Color(0xFFE65100);

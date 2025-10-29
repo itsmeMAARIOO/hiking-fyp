@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 /// Provider for managing group activities, locations, and member updates.
 class GroupProvider with ChangeNotifier {
   final String baseUrl = "${ApiConfig.baseUrl}/group";
+  final String soloBaseUrl = "${ApiConfig.baseUrl}/solo";
 
   bool _isLoading = false;
   Map<String, dynamic>? _activeGroup;
@@ -230,22 +231,77 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
+  // ✅ Update solo live location
+  // ----------------------------
+  Future<void> _updateSoloLocation({
+    required String userId,
+    required String userName,
+    String? trailName,
+  }) async {
+    if (_isUpdatingLocation) return; // prevent overlapping requests
+    _isUpdatingLocation = true;
+
+    final pos = await _getCurrentPosition();
+    if (pos == null) {
+      _isUpdatingLocation = false;
+      debugPrint("⚠️ Location unavailable");
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$soloBaseUrl/update-location'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'trailName': trailName ?? 'Unnamed Trail',
+          'latitude': pos.latitude,
+          'longitude': pos.longitude,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _lastError = null;
+        debugPrint(
+          "🏃‍♂️ Solo updated: $userName, ${pos.latitude}, ${pos.longitude}",
+        );
+      } else {
+        _lastError = "Failed to update solo location (${response.statusCode})";
+      }
+    } catch (e) {
+      _lastError = "Network error while updating solo location: $e";
+    } finally {
+      _isUpdatingLocation = false;
+      notifyListeners();
+    }
+  }
+
+  // ----------------------------
   // ✅ Start auto location updates
   // ----------------------------
   void startLocationUpdates({
-    required String groupId,
+    String? groupId,
     required String userId,
     required String userName,
+    bool forSolo = false,
+    String? trailName,
   }) {
     stopLocationUpdates(); // ensure only one timer exists
-
-    updateMyLocation(groupId: groupId, userId: userId, userName: userName);
-    _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      updateMyLocation(groupId: groupId, userId: userId, userName: userName);
-    });
-
-    // Start background stats timer so elapsed time continues while minimized
-    _startStatsTimer();
+    if (forSolo) {
+      _updateSoloLocation(userId: userId, userName: userName, trailName: trailName);
+      _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        _updateSoloLocation(userId: userId, userName: userName, trailName: trailName);
+      });
+      // Do NOT start stats timer here for solo; solo page manages its own UI timer
+    } else {
+      updateMyLocation(groupId: groupId!, userId: userId, userName: userName);
+      _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        updateMyLocation(groupId: groupId!, userId: userId, userName: userName);
+      });
+      // Start background stats timer so elapsed time continues while minimized
+      _startStatsTimer();
+    }
     _wasTracking = true; // mark tracking active
     notifyListeners();
 

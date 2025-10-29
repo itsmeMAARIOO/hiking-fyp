@@ -8,6 +8,26 @@ const router = express.Router();
  🚀 API Routes
 ----------------------------------------------*/
 
+// ✅ Count completed group hikes by user (user is a member and trail completed)
+router.get("/count/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId" });
+    }
+
+    const count = await TrailGroup.countDocuments({
+      "members.userId": userId,
+      "activeTrail.status": "completed",
+    });
+
+    res.json({ success: true, userId, totalGroupHikes: count });
+  } catch (err) {
+    console.error("❌ Error counting group hikes:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+});
+
 //--------------------------------------------------------------------------------- Using API -----------------------------------------------------------------------------
 // ✅ Get nearby hikers
 router.post("/nearby", async (req, res) => {

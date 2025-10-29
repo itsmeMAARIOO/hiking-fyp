@@ -1,104 +1,8 @@
-// import 'package:flutter/material.dart';
-// import 'package:hikingapp/providers/emergency_provider.dart';
-// import 'package:provider/provider.dart';
-
-// class QuickActionsButtons extends StatelessWidget {
-//   const QuickActionsButtons({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final emergencyProvider = Provider.of<EmergencyProvider>(
-//       context,
-//       listen: false,
-//     );
-
-//     return Padding(
-//       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-//       child: Row(
-//         children: [
-//           Expanded(
-//             child: ElevatedButton(
-//               onPressed: () => emergencyProvider.callEmergency(context),
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: Colors.red.shade700,
-//                 padding: const EdgeInsets.symmetric(vertical: 16),
-//                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(16),
-//                 ),
-//               ),
-//               child: const Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   Icon(Icons.phone, size: 24),
-//                   SizedBox(height: 6),
-//                   Text(
-//                     "Call",
-//                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-//                   ),
-//                   Text("911", style: TextStyle(fontSize: 10)),
-//                 ],
-//               ),
-//             ),
-//           ),
-//           const SizedBox(width: 12),
-//           Expanded(
-//             child: ElevatedButton(
-//               onPressed: () => emergencyProvider.showFirstAid(context),
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: Colors.green.shade700,
-//                 padding: const EdgeInsets.symmetric(vertical: 16),
-//                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(16),
-//                 ),
-//               ),
-//               child: const Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   Icon(Icons.medical_services, size: 24),
-//                   SizedBox(height: 6),
-//                   Text(
-//                     "First",
-//                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-//                   ),
-//                   Text("Aid", style: TextStyle(fontSize: 10)),
-//                 ],
-//               ),
-//             ),
-//           ),
-//           const SizedBox(width: 12),
-//           Expanded(
-//             child: ElevatedButton(
-//               onPressed: () {}, // implement share location logic
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: Colors.blue.shade700,
-//                 padding: const EdgeInsets.symmetric(vertical: 16),
-//                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(16),
-//                 ),
-//               ),
-//               child: const Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   Icon(Icons.location_pin, size: 24),
-//                   SizedBox(height: 6),
-//                   Text(
-//                     "Share",
-//                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-//                   ),
-//                   Text("Location", style: TextStyle(fontSize: 10)),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:hikingapp/providers/emergency_provider.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class QuickActionsButtons extends StatelessWidget {
   const QuickActionsButtons({super.key});
@@ -110,275 +14,283 @@ class QuickActionsButtons extends StatelessWidget {
       listen: false,
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          // Emergency Call Button
-          Expanded(
-            child: _ActionButton(
-              onPressed: () => emergencyProvider.callEmergency(context),
-              backgroundColor: const Color(0xFFDC2626), // Rich red
-              icon: Icons.emergency,
-              title: "Emergency",
-              subtitle: "Call 911",
-              iconColor: Colors.white,
-              hasShadow: true,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16, left: 4),
+          child: Text(
+            "Quick Actions",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: kDeepTeal,
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(width: 12),
-
-          // First Aid Button
-          Expanded(
-            child: _ActionButton(
-              onPressed: () => emergencyProvider.showFirstAid(context),
-              backgroundColor: const Color(0xFF059669), // Forest green
-              icon: Icons.medical_services,
-              title: "First Aid",
-              subtitle: "Guide",
-              iconColor: Colors.white,
-              hasShadow: true,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Share Location Button
-          Expanded(
-            child: _ActionButton(
-              onPressed: () {}, // implement share location logic
-              backgroundColor: const Color(0xFF2563EB), // Mountain blue
-              icon: Icons.location_on_outlined,
-              title: "Share",
-              subtitle: "Location",
-              iconColor: Colors.white,
-              hasShadow: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Custom button widget for consistent styling
-class _ActionButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final Color backgroundColor;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color iconColor;
-  final bool hasShadow;
-
-  const _ActionButton({
-    required this.onPressed,
-    required this.backgroundColor,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.iconColor,
-    this.hasShadow = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: hasShadow
-          ? BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: backgroundColor.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            )
-          : null,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0, // We're using custom shadow instead
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
+            // Emergency Call Button
+            Expanded(
+              child: _NatureActionButton(
+                onPressed: () => emergencyProvider.callEmergency(context),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.red.shade600, Colors.red.shade800],
+                ),
+                icon: Icons.emergency_rounded,
+                title: "Emergency",
+                subtitle: "Call 911",
+                accentColor: Colors.red.shade300,
               ),
-              child: Icon(icon, size: 28, color: iconColor),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+            const SizedBox(width: 12),
+
+            // First Aid Button
+            Expanded(
+              child: _NatureActionButton(
+                onPressed: () => emergencyProvider.showFirstAid(context),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [kMediumSage, kDeepForest],
+                ),
+                icon: Icons.medical_services_rounded,
+                title: "First Aid",
+                subtitle: "Guide",
+                accentColor: kSoftMint,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.9),
+            const SizedBox(width: 12),
+
+            // Share Location Button
+            Expanded(
+              child: _NatureActionButton(
+                onPressed: () {
+                  // Implement share location logic
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Sharing location...'),
+                      backgroundColor: kDeepForest,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                },
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [kDeepTeal, const Color(0xFF1a2f2f)],
+                ),
+                icon: Icons.share_location_rounded,
+                title: "Share",
+                subtitle: "Location",
+                accentColor: kSoftMint,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
 
-// Alternative version with outdoor-inspired colors
-class QuickActionsButtonsOutdoor extends StatelessWidget {
-  const QuickActionsButtonsOutdoor({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final emergencyProvider = Provider.of<EmergencyProvider>(
-      context,
-      listen: false,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _GradientActionButton(
-              onPressed: () => emergencyProvider.callEmergency(context),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              icon: Icons.emergency,
-              title: "Emergency",
-              subtitle: "Call 911",
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _GradientActionButton(
-              onPressed: () => emergencyProvider.showFirstAid(context),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF10B981), Color(0xFF059669)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              icon: Icons.medical_services,
-              title: "First Aid",
-              subtitle: "Guide",
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _GradientActionButton(
-              onPressed: () {},
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              icon: Icons.location_on_outlined,
-              title: "Share",
-              subtitle: "Location",
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Gradient button variant
-class _GradientActionButton extends StatelessWidget {
+class _NatureActionButton extends StatefulWidget {
   final VoidCallback onPressed;
   final Gradient gradient;
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color accentColor;
 
-  const _GradientActionButton({
+  const _NatureActionButton({
     required this.onPressed,
     required this.gradient,
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.accentColor,
   });
 
   @override
+  State<_NatureActionButton> createState() => _NatureActionButtonState();
+}
+
+class _NatureActionButtonState extends State<_NatureActionButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+    _controller.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+    _controller.reverse();
+    widget.onPressed();
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+    _controller.reverse();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF000000).withOpacity(0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: GestureDetector(
+            onTapDown: _handleTapDown,
+            onTapUp: _handleTapUp,
+            onTapCancel: _handleTapCancel,
+            child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                    spreadRadius: -4,
+                  ),
+                ],
               ),
-              child: Icon(icon, size: 26),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: widget.gradient,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20,
+                      horizontal: 8,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Icon container with glow
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Glow effect
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: widget.accentColor.withOpacity(0.5),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Icon background
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Icon(
+                                widget.icon,
+                                size: 26,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Title
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 2),
+
+                        // Subtitle
+                        Text(
+                          widget.subtitle,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withOpacity(0.85),
+                            letterSpacing: 0.3,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Decorative indicator
+                        Container(
+                          width: 24,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.9),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

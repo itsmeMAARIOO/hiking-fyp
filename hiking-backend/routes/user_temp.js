@@ -126,6 +126,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import User from "../models/User.js";
+import SoloTrail from "../models/SoloTrail.js";
+import TrailGroup from "../models/TrailGroup.js";
 
 const router = express.Router();
 
@@ -246,6 +248,31 @@ router.post("/update-setting", async (req, res) => {
   } catch (error) {
     console.error("❌ Update setting error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// ✅ Combined hike counts for profile page (solo + group)
+router.get("/hike-counts/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: "Missing userId" });
+    }
+
+    const [soloCount, groupCount] = await Promise.all([
+      SoloTrail.countDocuments({ userId, status: "completed" }),
+      TrailGroup.countDocuments({ "members.userId": userId, "activeTrail.status": "completed" }),
+    ]);
+
+    return res.json({
+      success: true,
+      userId,
+      totalSoloHikes: soloCount,
+      totalGroupHikes: groupCount,
+    });
+  } catch (error) {
+    console.error("❌ Hike counts error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 

@@ -2,15 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hikingapp/providers/group_provider.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class GroupOverview extends StatelessWidget {
   final Map<String, dynamic> group;
   final List members;
-
-  static const Color kDeepTeal = Color(0xFF1c3f3f);
-  static const Color kSoftMint = Color(0xFFa0d5b9);
-  static const Color kMediumSage = Color(0xFF6baf89);
-  static const Color kDeepForest = Color(0xFF3e7b5b);
 
   const GroupOverview({super.key, required this.group, required this.members});
 

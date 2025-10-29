@@ -281,8 +281,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 : _controller.currentImageUrl,
                             'emergencyContact':
                                 '${_controller.emergencyNameController.text} - ${_controller.emergencyPhoneController.text}',
-                            'totalHikes': profileProvider.totalHikes,
-                            'totalDistance': profileProvider.totalDistance,
+                            'totalHikes': profileProvider.totalSoloHikes,
+                            'totalDistance': profileProvider.totalGroupHikes,
                           });
 
                           if (mounted) Navigator.pop(context);

@@ -6,6 +6,8 @@ import authRoutes from "./routes/auth.js";
 import checkinRoutes from "./routes/checkin.js";
 import userRoutes from "./routes/user_temp.js";
 import groupRoutes from "./routes/group.js";
+import soloRoutes from "./routes/solo.js";
+import offlineMapRoutes from "./routes/offlineMap.js";
 import path from "path";
 
 dotenv.config();
@@ -22,11 +24,16 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ Serve uploaded files (must come before routes if serving images)
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+// ✅ Serve offline map tiles
+app.use("/offline-maps", express.static(path.join(process.cwd(), "offline-maps")));
+
 // ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/checkin", checkinRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/group", groupRoutes);
+app.use("/api/solo", soloRoutes);
+app.use("/api", offlineMapRoutes);
 
 // MongoDB connection
 mongoose

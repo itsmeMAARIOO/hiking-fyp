@@ -7,8 +7,8 @@ class ProfileProvider with ChangeNotifier {
   String? phone;
   String? profileImage;
   String? emergencyContact;
-  int totalHikes = 0;
-  String totalDistance = '0 miles';
+  int totalSoloHikes = 0;
+  int totalGroupHikes = 0;
 
   // Safety toggle settings with default values
   Map<String, bool> settings = {
@@ -41,8 +41,23 @@ class ProfileProvider with ChangeNotifier {
       emergencyContact = null;
     }
 
-    totalHikes = data['totalHikes'] ?? totalHikes;
-    totalDistance = data['totalDistance'] ?? totalDistance;
+    // Preserve existing counts unless provided explicitly
+    if (data.containsKey('totalSoloHikes')) {
+      final v = data['totalSoloHikes'];
+      if (v is num) {
+        totalSoloHikes = v.toInt();
+      } else if (v is String) {
+        totalSoloHikes = int.tryParse(v) ?? totalSoloHikes;
+      }
+    }
+    if (data.containsKey('totalGroupHikes')) {
+      final v = data['totalGroupHikes'];
+      if (v is num) {
+        totalGroupHikes = v.toInt();
+      } else if (v is String) {
+        totalGroupHikes = int.tryParse(v) ?? totalGroupHikes;
+      }
+    }
 
     // Load toggle settings safely
     if (data['settings'] != null && data['settings'] is Map<String, dynamic>) {
@@ -56,6 +71,17 @@ class ProfileProvider with ChangeNotifier {
       };
     }
 
+    notifyListeners();
+  }
+
+  // Explicit setters for hike counts
+  void setSoloHikeCount(int count) {
+    totalSoloHikes = count;
+    notifyListeners();
+  }
+
+  void setGroupHikeCount(int count) {
+    totalGroupHikes = count;
     notifyListeners();
   }
 

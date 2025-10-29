@@ -58,7 +58,7 @@ class NavigationButton extends StatelessWidget {
         // Main Action Button
         AnimatedContainer(
           duration: kAnimationDuration,
-          curve: Curves.easeOutBack,
+          curve: Curves.easeInOut,
           height: 72,
           width: isLastStep ? 120 : 72,
           decoration: BoxDecoration(

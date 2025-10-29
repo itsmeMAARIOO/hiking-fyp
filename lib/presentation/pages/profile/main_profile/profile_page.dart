@@ -5,11 +5,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:hikingapp/config/images/image_locations.dart';
 import 'package:hikingapp/config/routes.dart';
-import 'package:hikingapp/presentation/pages/emergency/emergency_page.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_controller.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/widgets/emergency_contact_card.dart';
 import 'package:provider/provider.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import '../../../../providers/profile_provider.dart';
+import '../../../../providers/auth_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -24,15 +25,14 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    final profileProvider = Provider.of<ProfileProvider>(
-      context,
-      listen: false,
-    );
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     controller = ProfileController(context);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (profileProvider.userId != null) {
-        controller.setUserId(profileProvider.userId!);
+      final effectiveUserId = authProvider.userId ?? profileProvider.userId;
+      if (effectiveUserId != null) {
+        controller.setUserId(effectiveUserId);
         controller.fetchUserData();
       }
     });
@@ -189,22 +189,33 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _buildEnhancedStatCard(
-                              'Total Hikes',
-                              profile.totalHikes.toString(),
-                              Icons.terrain_rounded,
-                              const Color(0xFF16A085),
-                            ),
-                            const SizedBox(width: 12),
-                            _buildEnhancedStatCard(
-                              'Distance',
-                              profile.totalDistance,
-                              Icons.straighten_rounded,
-                              const Color(0xFF8B4513),
-                            ),
-                          ],
+                        FutureBuilder<Map<String, int>>(
+                          future: controller.loadHikeCountsLatest(),
+                          builder: (context, snapshot) {
+                            final solo = snapshot.hasData
+                                ? (snapshot.data!['solo'] ?? 0)
+                                : profile.totalSoloHikes;
+                            final group = snapshot.hasData
+                                ? (snapshot.data!['group'] ?? 0)
+                                : profile.totalGroupHikes;
+                            return Row(
+                              children: [
+                                _buildEnhancedStatCard(
+                                  'Total Solo Hikes',
+                                  solo.toString(),
+                                  Icons.terrain_rounded,
+                                  const Color(0xFF16A085),
+                                ),
+                                const SizedBox(width: 12),
+                                _buildEnhancedStatCard(
+                                  'Total Group Hikes',
+                                  group.toString(),
+                                  Icons.straighten_rounded,
+                                  const Color(0xFF8B4513),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -606,33 +617,4 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  // Expanded _buildStatCard(String label, String value) {
-  //   return Expanded(
-  //     child: Container(
-  //       padding: const EdgeInsets.all(16),
-  //       decoration: BoxDecoration(
-  //         color: const Color(0xFFE8F8F5),
-  //         borderRadius: BorderRadius.circular(8),
-  //       ),
-  //       child: Column(
-  //         children: [
-  //           Text(
-  //             value,
-  //             style: const TextStyle(
-  //               fontSize: 20,
-  //               fontWeight: FontWeight.bold,
-  //               color: Color(0xFF16A085),
-  //             ),
-  //           ),
-  //           const SizedBox(height: 4),
-  //           Text(
-  //             label,
-  //             style: const TextStyle(fontSize: 12, color: Color(0xFF8B7355)),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
 }

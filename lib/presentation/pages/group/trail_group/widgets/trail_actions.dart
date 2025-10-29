@@ -1,15 +1,11 @@
 // lib/presentation/pages/group/active_trail/widgets/trail_actions.dart
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class TrailActions extends StatelessWidget {
   final bool isTracking;
   final VoidCallback onToggleTracking;
   final VoidCallback onEndTrail;
-
-  static const Color kDeepTeal = Color(0xFF1c3f3f);
-  static const Color kSoftMint = Color(0xFFa0d5b9);
-  static const Color kMediumSage = Color(0xFF6baf89);
-  static const Color kDeepForest = Color(0xFF3e7b5b);
 
   const TrailActions({
     super.key,

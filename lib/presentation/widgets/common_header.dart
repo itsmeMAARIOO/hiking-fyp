@@ -2,12 +2,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-// Color palette for the redesigned UI
-const Color kSoftMint = Color(0xFFa0d5b9);
-const Color kMediumSage = Color(0xFF6baf89);
-const Color kDeepForest = Color(0xFF3e7b5b);
-const Color kDeepTeal = Color(0xFF1c3f3f);
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class CommonHeader extends StatelessWidget {
   final String title;

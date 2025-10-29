@@ -1,5 +1,6 @@
 // lib/presentation/pages/group/active_trail/widgets/trail_statistics.dart
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class TrailStatistics extends StatelessWidget {
   final Duration elapsedTime;
@@ -7,10 +8,7 @@ class TrailStatistics extends StatelessWidget {
   final double currentSpeed;
   final bool isTracking;
 
-  static const Color kDeepTeal = Color(0xFF1c3f3f);
-  static const Color kSoftMint = Color(0xFFa0d5b9);
-  static const Color kMediumSage = Color(0xFF6baf89);
-  static const Color kDeepForest = Color(0xFF3e7b5b);
+  // Colors provided by centralized palette in config/colors.dart
 
   const TrailStatistics({
     super.key,

@@ -19,12 +19,7 @@ import 'widgets/dashboard_quick_actions.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../../services/checkin_service.dart';
 import 'package:hikingapp/presentation/widgets/bottom_nav_bar.dart';
-
-// Color constants matching the map page
-const Color kDeepTeal = Color(0xFF1c3f3f);
-const Color kSoftMint = Color(0xFFa0d5b9);
-const Color kMediumSage = Color(0xFF6baf89);
-const Color kDeepForest = Color(0xFF3e7b5b);
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -340,7 +335,13 @@ class _DashboardPageContentState extends State<DashboardPageContent> {
                                                     'dd-MMM-yy - HH:mm',
                                                   ).format(
                                                     dashboardProvider
-                                                        .lastCheckIn!,
+                                                        .lastCheckIn!
+                                                        .toUtc()
+                                                        .add(
+                                                          const Duration(
+                                                            hours: 8,
+                                                          ),
+                                                        ),
                                                   )
                                                 : 'No check-in',
                                             statusColor: kDeepForest,

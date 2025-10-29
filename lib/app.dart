@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
         builder: (context, child) {
           return Consumer<GroupProvider>(
             builder: (context, groupProvider, _) {
+              final mapProvider = Provider.of<MapProvider>(context);
               final currentRoute = Get.currentRoute;
               final isDashboard = currentRoute == AppRoutes.dashboard;
               final bottomOffset = isDashboard ? 76.0 : 16.0; // raise above bottom nav on dashboard
@@ -55,6 +56,20 @@ class MyApp extends StatelessWidget {
                           onTap: () {
                             groupProvider.setTrailMinimized(false);
                             Get.to(() => const TrailGroupPage());
+                          },
+                        ),
+                      ),
+                    ),
+                  if (mapProvider.isSoloTrailMinimized)
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: bottomOffset),
+                        child: MinimizedTrailBubble(
+                          groupName: 'Solo Trail',
+                          onTap: () {
+                            mapProvider.setSoloTrailMinimized(false);
+                            Get.toNamed(AppRoutes.soloTrail);
                           },
                         ),
                       ),

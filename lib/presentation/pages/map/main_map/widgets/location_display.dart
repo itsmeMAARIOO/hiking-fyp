@@ -232,8 +232,7 @@ class _LocationDisplayState extends State<LocationDisplay>
               child: _buildInfoCard(
                 icon: Icons.terrain,
                 label: "Altitude",
-                value:
-                    "${widget.location!['altitude']?.toStringAsFixed(0) ?? '0'}",
+                value: widget.location!['altitude']?.toStringAsFixed(0) ?? '0',
                 unit: "ft",
               ),
             ),
@@ -242,8 +241,7 @@ class _LocationDisplayState extends State<LocationDisplay>
               child: _buildInfoCard(
                 icon: Icons.explore,
                 label: "Accuracy",
-                value:
-                    "${widget.location!['accuracy']?.toStringAsFixed(1) ?? '0'}",
+                value: widget.location!['accuracy']?.toStringAsFixed(1) ?? '0',
                 unit: "m",
               ),
             ),
