@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -14,43 +15,151 @@ class BottomNavBar extends StatefulWidget {
   State<BottomNavBar> createState() => _BottomNavBarState();
 }
 
-class _BottomNavBarState extends State<BottomNavBar> {
+class _BottomNavBarState extends State<BottomNavBar>
+    with TickerProviderStateMixin {
   final List<NavItem> _navItems = const [
-    NavItem(Icons.dashboard_outlined, Icons.dashboard, "Dashboard"),
-    NavItem(Icons.map_outlined, Icons.map, "Map"),
-    NavItem(Icons.emergency, Icons.emergency, "SOS", isEmergency: true),
-    NavItem(Icons.people_outlined, Icons.people, "Groups"),
-    NavItem(Icons.person_outlined, Icons.person, "Profile"),
+    NavItem(Icons.dashboard_outlined, Icons.dashboard),
+    NavItem(Icons.map_outlined, Icons.map),
+    NavItem(Icons.emergency, Icons.emergency, isEmergency: true),
+    NavItem(Icons.terrain_outlined, Icons.terrain_rounded),
+    NavItem(Icons.person_outlined, Icons.person),
   ];
+
+  late AnimationController _pulseController;
+  late AnimationController _slideController;
+  late Animation<double> _slideAnimation;
+
+  int _previousIndex = 0;
+  final GlobalKey _navRowKey = GlobalKey();
+  final List<GlobalKey> _itemKeys = List.generate(5, (_) => GlobalKey());
+
+  @override
+  void initState() {
+    super.initState();
+    _previousIndex = widget.currentIndex;
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+
+    _slideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeInOutCubic),
+    );
+  }
+
+  @override
+  void didUpdateWidget(BottomNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      _previousIndex = oldWidget.currentIndex;
+      _slideController.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  double _getIndicatorPosition(int index) {
+    final RenderBox? renderBox =
+        _itemKeys[index].currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? navBox =
+        _navRowKey.currentContext?.findRenderObject() as RenderBox?;
+
+    if (renderBox != null && navBox != null) {
+      final position = renderBox.localToGlobal(Offset.zero);
+      final navPosition = navBox.localToGlobal(Offset.zero);
+      return position.dx - navPosition.dx + (renderBox.size.width / 2);
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: Colors.black.withOpacity(0.1),
-        //     blurRadius: 16,
-        //     offset: const Offset(0, -4),
-        //   ),
-        // ],
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(20),
+          bottom: Radius.circular(0),
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            children: _navItems.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return item.isEmergency
-                  ? _buildEmergencyButton(index)
-                  : _buildNavItem(item, index);
-            }).toList(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: kWarmWhite,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(20),
+              bottom: Radius.circular(0),
+            ),
+            border: const Border(
+              top: BorderSide(color: kGlassBorder, width: 1.0),
+            ),
+            boxShadow: const [],
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // Sliding selection background
+                AnimatedBuilder(
+                  animation: _slideAnimation,
+                  builder: (context, child) {
+                    if (_navItems[widget.currentIndex].isEmergency) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final startPos = _getIndicatorPosition(_previousIndex);
+                    final endPos = _getIndicatorPosition(widget.currentIndex);
+                    final currentPos =
+                        startPos + (endPos - startPos) * _slideAnimation.value;
+
+                    return Positioned(
+                      left: currentPos - 28,
+                      top: 8,
+                      child: Container(
+                        width: 56,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: kMediumSage.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kMediumSage.withOpacity(0.15),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                // Navigation items
+                Row(
+                  key: _navRowKey,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: _navItems.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+
+                    return item.isEmergency
+                        ? _buildEmergencyButton(index)
+                        : _buildNavItem(item, index);
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -58,101 +167,78 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 
   Widget _buildNavItem(NavItem item, int index) {
-    final isActive = widget.currentIndex == index;
+    final bool isActive = widget.currentIndex == index;
+    final int actualIndex = _navItems.indexOf(item);
 
     return Expanded(
       child: GestureDetector(
+        key: _itemKeys[actualIndex],
         onTap: () => widget.onTap(index),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: 2,
-              width: isActive ? 20 : 0,
-              decoration: BoxDecoration(
-                color: const Color(0xFF16A085),
-                borderRadius: BorderRadius.circular(2),
+        child: Container(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 300),
+                  tween: Tween(begin: 0.9, end: isActive ? 1.15 : 1.0),
+                  curve: Curves.easeOutBack,
+                  builder: (_, scale, child) =>
+                      Transform.scale(scale: scale, child: child),
+                  child: Icon(
+                    isActive ? item.activeIcon : item.icon,
+                    size: 26,
+                    color: isActive ? kDeepForest : kDeepGrey,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? const Color(0xFF16A085).withOpacity(0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isActive ? item.activeIcon : item.icon,
-                size: 24,
-                color: isActive
-                    ? const Color(0xFF16A085)
-                    : const Color(0xFF8B7355),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive
-                    ? const Color(0xFF16A085)
-                    : const Color(0xFF8B7355),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildEmergencyButton(int index) {
-    final isActive = widget.currentIndex == index;
+    final bool isActive = widget.currentIndex == index;
 
     return GestureDetector(
+      key: _itemKeys[index],
       onTap: () => widget.onTap(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: isActive ? 64 : 56,
-        height: isActive ? 64 : 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: isActive
-                ? [const Color(0xFFFF4444), const Color(0xFFC0392B)]
-                : [const Color(0xFFFF6B35), const Color(0xFFE74C3C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFF6B35).withOpacity(isActive ? 0.5 : 0.3),
-              blurRadius: isActive ? 12 : 8,
-              offset: const Offset(0, 4),
+      child: AnimatedBuilder(
+        animation: _pulseController,
+        builder: (_, child) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: isActive ? 70 : 60,
+              height: isActive ? 70 : 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: isActive
+                      ? [kEmergencyMediumRed, kEmergencyLightRed]
+                      : [kFreshRed, kEmergencyMediumRed],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.9),
+                  width: isActive ? 4 : 3,
+                ),
+              ),
+              child: child,
             ),
-          ],
-          border: Border.all(color: Colors.white, width: isActive ? 4 : 3),
-        ),
+          );
+        },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.emergency,
-              color: Colors.white,
-              size: isActive ? 24 : 20,
-            ),
-            Text(
-              "SOS",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: isActive ? 10 : 8,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          children: const [
+            Icon(Icons.emergency, color: Colors.white, size: 26),
+            SizedBox(height: 2),
           ],
         ),
       ),
@@ -163,13 +249,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
 class NavItem {
   final IconData icon;
   final IconData activeIcon;
-  final String label;
   final bool isEmergency;
 
-  const NavItem(
-    this.icon,
-    this.activeIcon,
-    this.label, {
-    this.isEmergency = false,
-  });
+  const NavItem(this.icon, this.activeIcon, {this.isEmergency = false});
 }

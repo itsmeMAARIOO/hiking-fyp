@@ -17,8 +17,7 @@ class EditProfileController extends ChangeNotifier {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
-  final emergencyNameController = TextEditingController();
-  final emergencyPhoneController = TextEditingController();
+  // Emergency contacts managed separately on Profile page
 
   File? selectedImage;
   String? currentImageUrl;
@@ -56,9 +55,7 @@ class EditProfileController extends ChangeNotifier {
         nameController.text = data['name'] ?? '';
         emailController.text = data['email'] ?? '';
         phoneController.text = data['phone'] ?? '';
-        emergencyNameController.text = data['emergencyContact']?['name'] ?? '';
-        emergencyPhoneController.text =
-            data['emergencyContact']?['phone'] ?? '';
+        // Emergency contacts fetched separately
         currentImageUrl =
             data['profileImage'] != null && data['profileImage'].isNotEmpty
             ? data['profileImage']
@@ -110,10 +107,7 @@ class EditProfileController extends ChangeNotifier {
       request.fields['name'] = nameController.text;
       request.fields['email'] = emailController.text;
       request.fields['phone'] = phoneController.text;
-      request.fields['emergencyContact'] = jsonEncode({
-        'name': emergencyNameController.text,
-        'phone': emergencyPhoneController.text,
-      });
+      // Emergency contacts are updated via dedicated APIs
 
       if (selectedImage != null) {
         request.files.add(

@@ -9,26 +9,12 @@ class QuickActionsButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final emergencyProvider = Provider.of<EmergencyProvider>(
-      context,
-      listen: false,
-    );
+    final emergencyProvider = Provider.of<EmergencyProvider>(context, listen: false);
+    final isSending = Provider.of<EmergencyProvider>(context).isSendingLocation;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16, left: 4),
-          child: Text(
-            "Quick Actions",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: kDeepTeal,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
         Row(
           children: [
             // Emergency Call Button
@@ -42,7 +28,7 @@ class QuickActionsButtons extends StatelessWidget {
                 ),
                 icon: Icons.emergency_rounded,
                 title: "Emergency",
-                subtitle: "Call 911",
+                subtitle: "Call 999",
                 accentColor: Colors.red.shade300,
               ),
             ),
@@ -68,19 +54,7 @@ class QuickActionsButtons extends StatelessWidget {
             // Share Location Button
             Expanded(
               child: _NatureActionButton(
-                onPressed: () {
-                  // Implement share location logic
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Sharing location...'),
-                      backgroundColor: kDeepForest,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => emergencyProvider.shareLocation(context),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -90,6 +64,7 @@ class QuickActionsButtons extends StatelessWidget {
                 title: "Share",
                 subtitle: "Location",
                 accentColor: kSoftMint,
+                isLoading: isSending,
               ),
             ),
           ],
@@ -106,6 +81,7 @@ class _NatureActionButton extends StatefulWidget {
   final String title;
   final String subtitle;
   final Color accentColor;
+  final bool isLoading;
 
   const _NatureActionButton({
     required this.onPressed,
@@ -114,6 +90,7 @@ class _NatureActionButton extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.accentColor,
+    this.isLoading = false,
   });
 
   @override
@@ -169,9 +146,9 @@ class _NatureActionButtonState extends State<_NatureActionButton>
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: GestureDetector(
-            onTapDown: _handleTapDown,
-            onTapUp: _handleTapUp,
-            onTapCancel: _handleTapCancel,
+            onTapDown: widget.isLoading ? null : _handleTapDown,
+            onTapUp: widget.isLoading ? null : _handleTapUp,
+            onTapCancel: widget.isLoading ? null : _handleTapCancel,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
@@ -223,9 +200,9 @@ class _NatureActionButtonState extends State<_NatureActionButton>
                                 ],
                               ),
                             ),
-                            // Icon background
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              width: 50,
+                              height: 50,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.25),
                                 shape: BoxShape.circle,
@@ -234,10 +211,23 @@ class _NatureActionButtonState extends State<_NatureActionButton>
                                   width: 1,
                                 ),
                               ),
-                              child: Icon(
-                                widget.icon,
-                                size: 26,
-                                color: Colors.white,
+                              child: Center(
+                                child: widget.isLoading
+                                    ? SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        widget.icon,
+                                        size: 26,
+                                        color: Colors.white,
+                                      ),
                               ),
                             ),
                           ],

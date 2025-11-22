@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class AnimatedTemperatureWidget extends StatefulWidget {
   final double temperatureF;
@@ -90,7 +91,11 @@ class _AnimatedTemperatureWidgetState extends State<AnimatedTemperatureWidget>
                   : _opacityAnimation.value,
               child: Row(
                 children: [
-                  Icon(widget.weatherIcon, size: 40),
+                  Icon(
+                    widget.weatherIcon,
+                    size: 40,
+                    color: kPureWhite.withOpacity(0.7),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: FittedBox(
@@ -124,13 +129,17 @@ class _AnimatedTemperatureWidgetState extends State<AnimatedTemperatureWidget>
         // Main temperature
         Text(
           '${mainTemp.toStringAsFixed(1)}$mainUnit',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: kPureWhite,
+          ),
         ),
         const SizedBox(width: 6),
         // Swapped temperature (smaller)
         Text(
           '${swappedTemp.toStringAsFixed(1)}$swappedUnit',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          style: TextStyle(fontSize: 12, color: kPureWhite.withOpacity(0.7)),
         ),
       ],
     );

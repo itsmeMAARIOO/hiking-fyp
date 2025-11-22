@@ -8,6 +8,7 @@ class GroupMember {
   final DateTime lastUpdated;
   final String? distance;
   final String? groupName;
+  final String? profileImage;
 
   GroupMember({
     required this.userId,
@@ -19,6 +20,7 @@ class GroupMember {
     required this.lastUpdated,
     this.distance,
     this.groupName,
+    this.profileImage,
   });
 
   factory GroupMember.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,9 @@ class GroupMember {
           DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
       distance: json['distance']?.toString(),
       groupName: json['groupName'],
+      profileImage: (json['profileImage'] is String && (json['profileImage'] as String).isNotEmpty)
+          ? json['profileImage']
+          : null,
     );
   }
 

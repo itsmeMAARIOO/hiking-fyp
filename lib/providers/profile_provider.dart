@@ -6,7 +6,7 @@ class ProfileProvider with ChangeNotifier {
   String? userName;
   String? phone;
   String? profileImage;
-  String? emergencyContact;
+  List<Map<String, String>> emergencyContacts = [];
   int totalSoloHikes = 0;
   int totalGroupHikes = 0;
 
@@ -29,17 +29,21 @@ class ProfileProvider with ChangeNotifier {
     phone = data['phone'] ?? '';
     profileImage = data['profileImage'];
 
-    // Store full emergency contact as Map<String, String>
-    if (data['emergencyContact'] != null) {
-      if (data['emergencyContact'] is Map<String, dynamic>) {
-        final ec = data['emergencyContact'] as Map<String, dynamic>;
-        emergencyContact = '${ec['name']} - ${ec['phone']}';
-      } else if (data['emergencyContact'] is String) {
-        emergencyContact = data['emergencyContact'];
+    emergencyContacts = [];
+    if (data['emergencyContacts'] is List) {
+      for (final c in (data['emergencyContacts'] as List)) {
+        if (c is Map<String, dynamic>) {
+          emergencyContacts.add({
+            'name': (c['name'] ?? '').toString(),
+            'email': (c['email'] ?? '').toString(),
+            'phone': (c['phone'] ?? '').toString(),
+            'share': ((c['share'] ?? false) as bool).toString(),
+          });
+        }
       }
-    } else {
-      emergencyContact = null;
     }
+
+    
 
     // Preserve existing counts unless provided explicitly
     if (data.containsKey('totalSoloHikes')) {
@@ -74,6 +78,12 @@ class ProfileProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setContactShare(int index, bool share) {
+    if (index < 0 || index >= emergencyContacts.length) return;
+    emergencyContacts[index]['share'] = share.toString();
+    notifyListeners();
+  }
+
   // Explicit setters for hike counts
   void setSoloHikeCount(int count) {
     totalSoloHikes = count;
@@ -88,6 +98,36 @@ class ProfileProvider with ChangeNotifier {
   // Update UI toggle state locally (used when controller updates)
   void toggleSetting(String key, bool value) {
     settings[key] = value;
+    notifyListeners();
+  }
+  // Hiking stats state
+  String statsFilter = 'Year';
+  List<Map<String, dynamic>> soloStats = [];
+  List<Map<String, dynamic>> groupStats = [];
+  int soloTotalFiltered = 0;
+  int groupTotalFiltered = 0;
+  int? selectedYear;
+  List<int> availableYears = [];
+
+  void setStatsFilter(String filter) {
+    statsFilter = filter;
+    notifyListeners();
+  }
+
+  void setHikingStats({
+    required List<Map<String, dynamic>> solo,
+    required List<Map<String, dynamic>> group,
+    required int soloTotal,
+    required int groupTotal,
+    List<int>? years,
+    int? year,
+  }) {
+    soloStats = solo;
+    groupStats = group;
+    soloTotalFiltered = soloTotal;
+    groupTotalFiltered = groupTotal;
+    if (years != null) availableYears = years;
+    if (year != null) selectedYear = year;
     notifyListeners();
   }
 }

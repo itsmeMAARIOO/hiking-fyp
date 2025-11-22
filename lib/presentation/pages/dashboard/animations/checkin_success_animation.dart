@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart'; // Ensure this is imported
 
 class CheckInSuccessAnimation extends StatefulWidget {
   final Widget child;
@@ -30,15 +31,17 @@ class _CheckInSuccessAnimationState extends State<CheckInSuccessAnimation>
       duration: const Duration(milliseconds: 800),
     );
 
+    // Button "Pop" effect
     _scale = Tween<double>(
       begin: 1.0,
-      end: 1.1,
+      end: 1.15, // Slightly punchier pop
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
+    // Glow Pulse
     _glow = Tween<double>(
       begin: 0,
-      end: 15,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+      end: 20, // Larger range for visibility
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutQuad));
   }
 
   @override
@@ -63,31 +66,37 @@ class _CheckInSuccessAnimationState extends State<CheckInSuccessAnimation>
       builder: (context, child) {
         return Stack(
           alignment: Alignment.center,
-          clipBehavior: Clip.none,
+          clipBehavior: Clip.none, // Allow glow to expand beyond bounds
           children: [
-            // Glow effect behind the widget (doesn't affect layout)
+            // --- 1. The Glow Effect ---
             Positioned.fill(
-              child: Positioned.fill(
-                child: IgnorePointer(
-                  // ensure it doesn’t block touches
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.greenAccent.withOpacity(
-                            _controller.value * 0.5,
-                          ),
-                          blurRadius: _glow.value,
-                          spreadRadius: _glow.value / 2,
-                        ),
-                      ],
+              child: Container(
+                decoration: BoxDecoration(
+                  shape:
+                      BoxShape.circle, // <--- CRITICAL FIX: Makes glow circular
+                  boxShadow: [
+                    // Inner intense glow (Orange)
+                    BoxShadow(
+                      color: kDeepForest.withOpacity(
+                        (_controller.value * 0.6).clamp(0.0, 1.0),
+                      ),
+                      blurRadius: _glow.value,
+                      spreadRadius: _glow.value * 0.5,
                     ),
-                  ),
+                    // Outer soft halo (Forest/Teal) for depth
+                    BoxShadow(
+                      color: kDeepForest.withOpacity(
+                        (_controller.value * 0.3).clamp(0.0, 1.0),
+                      ),
+                      blurRadius: _glow.value * 2,
+                      spreadRadius: _glow.value,
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            // The actual child (scaled, but layout-safe)
+            // --- 2. The Button (Scaled) ---
             Transform.scale(scale: _scale.value, child: child),
           ],
         );

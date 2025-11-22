@@ -1,75 +1,75 @@
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:hikingapp/providers/auth_provider.dart';
-import 'package:hikingapp/providers/dashboard_provider.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:hikingapp/providers/auth_provider.dart';
+// import 'package:hikingapp/providers/dashboard_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:hikingapp/config/api_config.dart';
 
-import 'package:provider/provider.dart';
+// import 'package:provider/provider.dart';
 
 class CheckInService {
-  int _tapCount = 0;
-  DateTime _firstTapTime = DateTime.now();
-  final int _tapThresholdMs = 500;
+  // int _tapCount = 0;
+  // DateTime _firstTapTime = DateTime.now();
+  // final int _tapThresholdMs = 500;
   final baseUrl = ApiConfig.baseUrl;
 
   // ✅ Remove duplicated /api
   late final url = "$baseUrl/checkin";
 
-  Future<void> handleCheckInTripleTap(
-    DashboardProvider dashboardProvider,
-    BuildContext context,
-  ) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final now = DateTime.now();
+  // Future<void> handleCheckInTripleTap(
+  //   DashboardProvider dashboardProvider,
+  //   BuildContext context,
+  // ) async {
+  //   final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  //   final now = DateTime.now();
 
-    if (now.difference(_firstTapTime).inMilliseconds > _tapThresholdMs) {
-      _tapCount = 0;
-      _firstTapTime = now;
-    }
+  //   if (now.difference(_firstTapTime).inMilliseconds > _tapThresholdMs) {
+  //     _tapCount = 0;
+  //     _firstTapTime = now;
+  //   }
 
-    _tapCount++;
+  //   _tapCount++;
 
-    if (_tapCount >= 3) {
-      _tapCount = 0;
+  //   if (_tapCount >= 3) {
+  //     _tapCount = 0;
 
-      DateTime? previousCheckIn = dashboardProvider.lastCheckIn;
-      if (previousCheckIn == null) {
-        await dashboardProvider.loadLastCheckIn(context);
-        previousCheckIn = dashboardProvider.lastCheckIn;
-      }
+  //     DateTime? previousCheckIn = dashboardProvider.lastCheckIn;
+  //     if (previousCheckIn == null) {
+  //       await dashboardProvider.loadLastCheckIn(context);
+  //       previousCheckIn = dashboardProvider.lastCheckIn;
+  //     }
 
-      double latitude = 0.0;
-      double longitude = 0.0;
+  //     double latitude = 0.0;
+  //     double longitude = 0.0;
 
-      try {
-        final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-        latitude = position.latitude;
-        longitude = position.longitude;
-      } catch (_) {}
+  //     try {
+  //       final position = await Geolocator.getCurrentPosition(
+  //         desiredAccuracy: LocationAccuracy.high,
+  //       );
+  //       latitude = position.latitude;
+  //       longitude = position.longitude;
+  //     } catch (_) {}
 
-      if (authProvider.userId == null) {
-        print('❌ No userId found in AuthProvider.');
-        return;
-      }
+  //     if (authProvider.userId == null) {
+  //       print('❌ No userId found in AuthProvider.');
+  //       return;
+  //     }
 
-      final currentCheckIn = DateTime.now();
+  //     final currentCheckIn = DateTime.now();
 
-      await saveCheckIn(
-        userId: authProvider.userId!,
-        checkinTime: currentCheckIn,
-        lastCheckinTime: previousCheckIn,
-        latitude: latitude,
-        longitude: longitude,
-        extraData: {'note': 'Manual triple-tap check-in'},
-      );
+  //     await saveCheckIn(
+  //       userId: authProvider.userId!,
+  //       checkinTime: currentCheckIn,
+  //       lastCheckinTime: previousCheckIn,
+  //       latitude: latitude,
+  //       longitude: longitude,
+  //       extraData: {'note': 'Manual triple-tap check-in'},
+  //     );
 
-      dashboardProvider.updateLastCheckIn(currentCheckIn);
-    }
-  }
+  //     dashboardProvider.updateLastCheckIn(currentCheckIn);
+  //   }
+  // }
 
   Future<void> saveCheckIn({
     required String? userId,

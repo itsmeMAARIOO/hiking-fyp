@@ -260,11 +260,20 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             const SizedBox(height: 15),
 
                             // Email input
-                            _buildMinimalTextField(
-                              label: "Email Address",
-                              icon: Icons.alternate_email_rounded,
-                              onChanged: (value) =>
-                                  controller.email.value = value,
+                            Obx(
+                              () => _buildMinimalTextField(
+                                label: "Email Address",
+                                icon: Icons.alternate_email_rounded,
+                                errorText: controller.emailError.value.isEmpty
+                                    ? null
+                                    : controller.emailError.value,
+                                onChanged: (value) {
+                                  controller.email.value = value;
+                                  if (controller.emailError.value.isNotEmpty) {
+                                    controller.emailError.value = '';
+                                  }
+                                },
+                              ),
                             ),
 
                             const SizedBox(height: 15),
@@ -276,8 +285,19 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                 icon: Icons.lock_outline_rounded,
                                 isPassword: true,
                                 obscureText: controller.isPasswordHidden.value,
-                                onChanged: (value) =>
-                                    controller.password.value = value,
+                                errorText:
+                                    controller.passwordError.value.isEmpty
+                                    ? null
+                                    : controller.passwordError.value,
+                                onChanged: (value) {
+                                  controller.password.value = value;
+                                  if (controller
+                                      .passwordError
+                                      .value
+                                      .isNotEmpty) {
+                                    controller.passwordError.value = '';
+                                  }
+                                },
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     controller.isPasswordHidden.value
@@ -441,7 +461,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     bool isPassword = false,
     bool obscureText = false,
     Widget? suffixIcon,
+    String? errorText,
   }) {
+    final bool isError = (errorText != null && errorText.isNotEmpty);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -461,7 +483,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             color: kSoftMint.withOpacity(0.08),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: kMediumSage.withOpacity(0.3), width: 1.5),
+            border: Border.all(
+              color: isError ? Colors.redAccent : kMediumSage.withOpacity(0.3),
+              width: 1.5,
+            ),
           ),
           child: TextField(
             obscureText: obscureText,
@@ -487,6 +512,20 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ),
           ),
         ),
+        if (isError) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              errorText!,
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

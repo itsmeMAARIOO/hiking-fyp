@@ -16,6 +16,9 @@ class _LocationDisplayState extends State<LocationDisplay>
   late AnimationController _expandController;
   late Animation<double> _pulseAnimation;
   late Animation<double> _expandAnimation;
+
+  // We remove the boolean _isExpanded for rendering logic
+  // and rely on the controller status instead.
   bool _isExpanded = false;
 
   @override
@@ -27,7 +30,9 @@ class _LocationDisplayState extends State<LocationDisplay>
     )..repeat(reverse: true);
 
     _expandController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(
+        milliseconds: 500,
+      ), // Slightly slower for smoothness
       vsync: this,
     );
 
@@ -37,7 +42,8 @@ class _LocationDisplayState extends State<LocationDisplay>
 
     _expandAnimation = CurvedAnimation(
       parent: _expandController,
-      curve: Curves.easeInOutCubic,
+      curve:
+          Curves.fastOutSlowIn, // This curve feels more natural for expanding
     );
   }
 
@@ -68,7 +74,8 @@ class _LocationDisplayState extends State<LocationDisplay>
     return GestureDetector(
       onTap: _toggleExpand,
       child: AnimatedBuilder(
-        animation: _expandAnimation,
+        animation:
+            _pulseAnimation, // Only rebuild for pulse, layout handles expansion
         builder: (context, child) {
           return Container(
             decoration: BoxDecoration(
@@ -115,18 +122,34 @@ class _LocationDisplayState extends State<LocationDisplay>
                   ),
                   // Content
                   Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: _isExpanded ? 16 : 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildCompactHeader(),
-                        if (_isExpanded) ...[
-                          const SizedBox(height: 16),
-                          _buildExpandedContent(),
-                        ],
+                        // We wrap the header in a Container with vertical padding
+                        // so the padding doesn't jump during animation
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: _buildCompactHeader(),
+                        ),
+
+                        // FIX: Use SizeTransition instead of if/else
+                        SizeTransition(
+                          sizeFactor: _expandAnimation,
+                          axisAlignment: -1.0, // Expand from top to bottom
+                          child: FadeTransition(
+                            opacity: _expandAnimation,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 4), // Inner spacing
+                                  _buildExpandedContent(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -181,12 +204,12 @@ class _LocationDisplayState extends State<LocationDisplay>
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text(
+                  const Text(
                     'GPS Active',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6BAF89),
+                      color: Color(0xFF6BAF89),
                     ),
                   ),
                 ],
@@ -203,19 +226,19 @@ class _LocationDisplayState extends State<LocationDisplay>
             ],
           ),
         ),
-        AnimatedRotation(
-          turns: _isExpanded ? 0.5 : 0,
-          duration: const Duration(milliseconds: 400),
+        // Sync rotation with the same controller for perfect timing
+        RotationTransition(
+          turns: Tween(begin: 0.0, end: 0.5).animate(_expandAnimation),
           child: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: const Color(0xFF6BAF89).withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.keyboard_arrow_down,
               size: 18,
-              color: const Color(0xFF3E7B5B),
+              color: Color(0xFF3E7B5B),
             ),
           ),
         ),
@@ -301,10 +324,10 @@ class _LocationDisplayState extends State<LocationDisplay>
                   padding: const EdgeInsets.only(bottom: 2),
                   child: Text(
                     unit,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6BAF89),
+                      color: Color(0xFF6BAF89),
                     ),
                   ),
                 ),
@@ -455,7 +478,7 @@ class _LocationDisplayState extends State<LocationDisplay>
             ),
           ),
           const SizedBox(width: 12),
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -463,17 +486,17 @@ class _LocationDisplayState extends State<LocationDisplay>
                 'Acquiring Location',
                 style: TextStyle(
                   fontSize: 11,
-                  color: const Color(0xFF1C3F3F),
+                  color: Color(0xFF1C3F3F),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
                 ),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(
                 'Connecting to GPS...',
                 style: TextStyle(
                   fontSize: 9,
-                  color: const Color(0xFF6BAF89),
+                  color: Color(0xFF6BAF89),
                   fontWeight: FontWeight.w500,
                 ),
               ),

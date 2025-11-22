@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hikingapp/utils/snackbar_helper.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -12,8 +14,8 @@ class CompassPage extends StatefulWidget {
 }
 
 class _CompassPageState extends State<CompassPage> {
-  double? _heading;
   bool _hasPermission = false;
+  StreamSubscription<CompassEvent>? _sub;
 
   @override
   void initState() {
@@ -21,15 +23,23 @@ class _CompassPageState extends State<CompassPage> {
     _initCompass();
   }
 
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
   Future<void> _initCompass() async {
     final status = await Permission.locationWhenInUse.request();
+    if (!mounted) return;
     if (status.isGranted) {
       setState(() {
         _hasPermission = true;
       });
-      FlutterCompass.events?.listen((event) {
+      _sub?.cancel();
+      _sub = FlutterCompass.events?.listen((event) {
+        if (!mounted) return;
         setState(() {
-          _heading = event.heading;
         });
       });
     } else {
@@ -49,6 +59,12 @@ class _CompassPageState extends State<CompassPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.black,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.black,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
         title: const Text(
           "Compass",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),

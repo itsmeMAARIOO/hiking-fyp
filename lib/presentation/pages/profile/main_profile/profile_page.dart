@@ -6,11 +6,12 @@ import 'package:get/get.dart';
 import 'package:hikingapp/config/images/image_locations.dart';
 import 'package:hikingapp/config/routes.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_controller.dart';
-import 'package:hikingapp/presentation/pages/profile/main_profile/widgets/emergency_contact_card.dart';
 import 'package:provider/provider.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
+import 'package:hikingapp/presentation/styles/app_styles.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../providers/auth_provider.dart';
+import 'widgets/hiking_stats_card.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -25,7 +26,10 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(
+      context,
+      listen: false,
+    );
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     controller = ProfileController(context);
 
@@ -41,473 +45,414 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Consumer<ProfileProvider>(
-            builder: (context, profile, _) {
-              return Column(
-                children: [
-                  // Header with gradient background
-                  // Header with background
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 30,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [kDeepTeal, kDeepForest],
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(24),
-                        bottomRight: Radius.circular(24),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Profile Image with border
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.white,
-                                const Color(0xFF16A085).withOpacity(0.3),
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 42,
-                            backgroundColor: const Color(0xFFE8F8F5),
-                            backgroundImage:
-                                (profile.profileImage != null &&
-                                    profile.profileImage!.isNotEmpty)
-                                ? profile.profileImage!.startsWith('http')
-                                      ? NetworkImage(profile.profileImage!)
-                                      : FileImage(
-                                          File(
-                                            profile.profileImage!.replaceFirst(
-                                              'file://',
-                                              '',
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          const AnimatedBackground(),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Consumer<ProfileProvider>(
+                builder: (context, profile, _) {
+                  return Column(
+                    children: [
+                      // Minimal profile header (aligned with modern apps)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: const Color(0xFFE8F8F5),
+                              backgroundImage:
+                                  (profile.profileImage != null &&
+                                      profile.profileImage!.isNotEmpty)
+                                  ? profile.profileImage!.startsWith('http')
+                                        ? NetworkImage(profile.profileImage!)
+                                        : FileImage(
+                                            File(
+                                              profile.profileImage!
+                                                  .replaceFirst('file://', ''),
                                             ),
-                                          ),
-                                        )
-                                : AssetImage(ImageLocation.climber)
-                                      as ImageProvider,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          profile.userName ?? 'Hiker',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          profile.userEmail ?? '',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Edit Profile',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                                          )
+                                  : AssetImage(ImageLocation.climber)
+                                        as ImageProvider,
                             ),
-                          ),
-                          onPressed: () async {
-                            await Get.toNamed(AppRoutes.editProfile);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black.withOpacity(0.3),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.5),
-                                width: 1,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    profile.userName ?? 'Hiker',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: kDeepTeal,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    profile.userEmail ?? '',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF7F8C8D),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            elevation: 2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Hiking Stats - Enhanced cards
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Hiking Stats',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2C3E50),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FutureBuilder<Map<String, int>>(
-                          future: controller.loadHikeCountsLatest(),
-                          builder: (context, snapshot) {
-                            final solo = snapshot.hasData
-                                ? (snapshot.data!['solo'] ?? 0)
-                                : profile.totalSoloHikes;
-                            final group = snapshot.hasData
-                                ? (snapshot.data!['group'] ?? 0)
-                                : profile.totalGroupHikes;
-                            return Row(
-                              children: [
-                                _buildEnhancedStatCard(
-                                  'Total Solo Hikes',
-                                  solo.toString(),
-                                  Icons.terrain_rounded,
-                                  const Color(0xFF16A085),
-                                ),
-                                const SizedBox(width: 12),
-                                _buildEnhancedStatCard(
-                                  'Total Group Hikes',
-                                  group.toString(),
-                                  Icons.straighten_rounded,
-                                  const Color(0xFF8B4513),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Emergency Contact - Enhanced
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.emergency_rounded,
-                              color: Color(0xFFFF6B35),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Emergency Contact',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2C3E50),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                color: kDeepTeal,
+                                size: 20,
                               ),
+                              onPressed: () async {
+                                await Get.toNamed(AppRoutes.editProfile);
+                              },
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        const EmergencyContactCard(),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                  // Safety Settings - Enhanced section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                      // Hiking Stats - Enhanced cards
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.security_rounded,
-                              color: Color(0xFF16A085),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
                             const Text(
-                              'Safety Settings',
+                              'Hiking Stats',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2C3E50),
+                                color: kDeepTeal,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              _buildEnhancedSettingsToggle(
-                                icon: Icons.notifications_active_rounded,
-                                label: 'Push Notifications',
-                                value: profile.settings['pushNotifications']!,
-                                onToggle: (v) => controller.toggleSetting(
-                                  'pushNotifications',
-                                  v,
-                                ),
-                                isFirst: true,
-                              ),
-                              _buildEnhancedSettingsToggle(
-                                icon: Icons.my_location_rounded,
-                                label: 'Location Sharing',
-                                value: profile.settings['locationSharing']!,
-                                onToggle: (v) => controller.toggleSetting(
-                                  'locationSharing',
-                                  v,
-                                ),
-                              ),
-                              _buildEnhancedSettingsToggle(
-                                icon: Icons.health_and_safety_rounded,
-                                label: 'Fall Detection',
-                                value: profile.settings['fallDetection']!,
-                                onToggle: (v) => controller.toggleSetting(
-                                  'fallDetection',
-                                  v,
-                                ),
-                              ),
-                              _buildEnhancedSettingsToggle(
-                                icon: Icons.check_circle_outline_rounded,
-                                label: 'Auto Check-in',
-                                value: profile.settings['autoCheckIn']!,
-                                onToggle: (v) =>
-                                    controller.toggleSetting('autoCheckIn', v),
-                              ),
-                              _buildEnhancedSettingsToggle(
-                                icon: Icons.cloud_rounded,
-                                label: 'Weather Alerts',
-                                value: profile.settings['weatherAlerts']!,
-                                onToggle: (v) => controller.toggleSetting(
-                                  'weatherAlerts',
-                                  v,
-                                ),
-                                isLast: true,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Logout Button - Enhanced
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(
-                          Icons.logout_rounded,
-                          color: Color(0xFFE74C3C),
-                          size: 22,
-                        ),
-                        label: const Text(
-                          'Logout',
-                          style: TextStyle(
-                            color: Color(0xFFE74C3C),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                        onPressed: () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => Dialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                            const SizedBox(height: 12),
+                            FutureBuilder<Map<String, int>>(
+                              future: controller.loadHikeCountsLatest(),
+                              builder: (context, snapshot) {
+                                final solo = snapshot.hasData
+                                    ? (snapshot.data!['solo'] ?? 0)
+                                    : profile.totalSoloHikes;
+                                final group = snapshot.hasData
+                                    ? (snapshot.data!['group'] ?? 0)
+                                    : profile.totalGroupHikes;
+                                return Row(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFEBEE),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.logout_rounded,
-                                        size: 48,
-                                        color: Color(0xFFE74C3C),
-                                      ),
+                                    _buildEnhancedStatCard(
+                                      'Solo Hikes',
+                                      solo.toString(),
+                                      Icons.terrain_rounded,
+                                      kMediumSage,
+                                      onTap: () {
+                                        Get.toNamed(
+                                          AppRoutes.hikeHistory,
+                                          arguments: {'type': 'solo'},
+                                        );
+                                      },
                                     ),
-                                    const SizedBox(height: 20),
-                                    const Text(
-                                      'Logout',
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF2C3E50),
-                                      ),
+                                    const SizedBox(width: 12),
+                                    _buildEnhancedStatCard(
+                                      'Group Hikes',
+                                      group.toString(),
+                                      Icons.straighten_rounded,
+                                      kDeepForest,
+                                      onTap: () {
+                                        Get.toNamed(
+                                          AppRoutes.hikeHistory,
+                                          arguments: {'type': 'group'},
+                                        );
+                                      },
                                     ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'Are you sure you want to logout?',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        color: Color(0xFF7F8C8D),
-                                      ),
-                                      textAlign: TextAlign.center,
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Hiking Activity Overview - analytics card
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: HikingStatsCard(),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Safety Settings
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.security_rounded,
+                                  color: Color(0xFF16A085),
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Safety Settings',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: kDeepTeal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: kWarmWhite,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // _buildEnhancedSettingsToggle(
+                                  //   icon: Icons.notifications_active_rounded,
+                                  //   label: 'Push Notifications',
+                                  //   value: profile.settings['pushNotifications']!,
+                                  //   onToggle: (v) => controller.toggleSetting(
+                                  //     'pushNotifications',
+                                  //     v,
+                                  //   ),
+                                  //   isFirst: true,
+                                  // ),
+                                  // _buildEnhancedSettingsToggle(
+                                  //   icon: Icons.my_location_rounded,
+                                  //   label: 'Location Sharing',
+                                  //   value: profile.settings['locationSharing']!,
+                                  //   onToggle: (v) => controller.toggleSetting(
+                                  //     'locationSharing',
+                                  //     v,
+                                  //   ),
+                                  // ),
+                                  _buildEnhancedSettingsToggle(
+                                    icon: Icons.health_and_safety_rounded,
+                                    label: 'Fall Detection',
+                                    value: profile.settings['fallDetection']!,
+                                    onToggle: (v) => controller.toggleSetting(
+                                      'fallDetection',
+                                      v,
                                     ),
-                                    const SizedBox(height: 24),
-                                    Row(
+                                  ),
+                                  // _buildEnhancedSettingsToggle(
+                                  //   icon: Icons.check_circle_outline_rounded,
+                                  //   label: 'Auto Check-in',
+                                  //   value: profile.settings['autoCheckIn']!,
+                                  //   onToggle: (v) =>
+                                  //       controller.toggleSetting('autoCheckIn', v),
+                                  // ),
+                                  // _buildEnhancedSettingsToggle(
+                                  //   icon: Icons.cloud_rounded,
+                                  //   label: 'Weather Alerts',
+                                  //   value: profile.settings['weatherAlerts']!,
+                                  //   onToggle: (v) => controller.toggleSetting(
+                                  //     'weatherAlerts',
+                                  //     v,
+                                  //   ),
+                                  //   isLast: true,
+                                  // ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Logout Button - Enhanced
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(
+                              Icons.logout_rounded,
+                              color: Color(0xFFE74C3C),
+                              size: 22,
+                            ),
+                            label: const Text(
+                              'Logout',
+                              style: TextStyle(
+                                color: Color(0xFFE74C3C),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: kWarmWhite,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            style: OutlinedButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 14,
-                                                  ),
-                                              side: const BorderSide(
-                                                color: Color(0xFF95A5A6),
-                                                width: 2,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                            ),
-                                            child: const Text(
-                                              'Cancel',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF2C3E50),
-                                              ),
-                                            ),
+                                        Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFFEBEE),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.logout_rounded,
+                                            size: 48,
+                                            color: Color(0xFFE74C3C),
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: ElevatedButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xFFE74C3C,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 14,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                            ),
-                                            child: const Text(
-                                              'Logout',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
+                                        const SizedBox(height: 20),
+                                        const Text(
+                                          'Logout',
+                                          style: TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            color: kDeepTeal,
                                           ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          'Are you sure you want to logout?',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            color: Color(0xFF7F8C8D),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: OutlinedButton(
+                                                onPressed: () => Navigator.pop(
+                                                  context,
+                                                  false,
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 14,
+                                                      ),
+                                                  side: const BorderSide(
+                                                    color: Color(0xFF95A5A6),
+                                                    width: 2,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  'Cancel',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: kDeepTeal,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                onPressed: () => Navigator.pop(
+                                                  context,
+                                                  true,
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFFE74C3C,
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 14,
+                                                      ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  'Logout',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
+                              );
 
-                          if (confirmed == true) {
-                            const storage = FlutterSecureStorage();
-                            await storage.delete(key: "authToken");
-                            Get.offAllNamed(AppRoutes.login);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: const BorderSide(
-                            color: Color(0xFFE74C3C),
-                            width: 2,
+                              if (confirmed == true) {
+                                const storage = FlutterSecureStorage();
+                                await storage.delete(key: "authToken");
+                                Get.offAllNamed(AppRoutes.login);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kWarmWhite,
+                              side: const BorderSide(
+                                color: Color(0xFFE74C3C),
+                                width: 2,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
                         ),
                       ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 32),
-                ],
-              );
-            },
+                      const SizedBox(height: 32),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -516,52 +461,77 @@ class _ProfilePageState extends State<ProfilePage> {
     String label,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [color.withOpacity(0.03), color.withOpacity(0.08)],
               ),
-              child: Icon(icon, color: color, size: 28),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withOpacity(0.1)),
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                            height: 1.1,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.trending_up_rounded,
+                            color: color,
+                            size: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: kDeepTeal.withOpacity(0.6),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF7F8C8D),
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -572,7 +542,6 @@ class _ProfilePageState extends State<ProfilePage> {
     required String label,
     required bool value,
     required Function(bool) onToggle,
-    bool isFirst = false,
     bool isLast = false,
   }) {
     return Container(
@@ -590,10 +559,10 @@ class _ProfilePageState extends State<ProfilePage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F8F5),
+                color: kSoftMint.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: const Color(0xFF16A085), size: 20),
+              child: Icon(icon, color: kMediumSage, size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -601,7 +570,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 label,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF2C3E50),
+                  color: kDeepTeal,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -609,8 +578,8 @@ class _ProfilePageState extends State<ProfilePage> {
             Switch(
               value: value,
               onChanged: onToggle,
-              activeColor: const Color(0xFF16A085),
-              activeTrackColor: const Color(0xFF16A085).withOpacity(0.3),
+              activeColor: kMediumSage,
+              activeTrackColor: kMediumSage.withOpacity(0.3),
             ),
           ],
         ),

@@ -146,21 +146,35 @@ class _EmergencyButtonState extends State<EmergencyButton>
                           ),
                         ),
 
-                        // Icon
+                        // Icon or inline countdown
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              emergencyProvider.sosActive
-                                  ? Icons.close_rounded
-                                  : Icons.warning_rounded,
-                              size: 56,
-                              color: Colors.white,
-                            ),
+                            if (emergencyProvider.isCountingDown)
+                              Text(
+                                '${emergencyProvider.countdownRemaining}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                ),
+                              )
+                            else
+                              Icon(
+                                emergencyProvider.sosActive
+                                    ? Icons.close_rounded
+                                    : Icons.warning_rounded,
+                                size: 56,
+                                color: Colors.white,
+                              ),
                             const SizedBox(height: 4),
                             Text(
-                              emergencyProvider.sosActive ? "CANCEL" : "SOS",
-                              style: TextStyle(
+                              emergencyProvider.sosActive ||
+                                      emergencyProvider.isCountingDown
+                                  ? "CANCEL"
+                                  : "SOS",
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
@@ -191,8 +205,8 @@ class _EmergencyButtonState extends State<EmergencyButton>
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: emergencyProvider.sosActive
-                  ? Colors.red.withOpacity(0.3)
-                  : kMediumSage.withOpacity(0.3),
+                  ? kEmergencyDarkRed
+                  : kDeepTeal,
               width: 1,
             ),
           ),
@@ -206,7 +220,7 @@ class _EmergencyButtonState extends State<EmergencyButton>
                 size: 18,
                 color: emergencyProvider.sosActive
                     ? Colors.red.shade700
-                    : kDeepForest,
+                    : kDeepTeal,
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -217,7 +231,7 @@ class _EmergencyButtonState extends State<EmergencyButton>
                   style: TextStyle(
                     fontSize: 13,
                     color: emergencyProvider.sosActive
-                        ? Colors.red.shade900
+                        ? kEmergencyDarkRed
                         : kDeepTeal,
                     fontWeight: FontWeight.w600,
                   ),

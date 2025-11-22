@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -36,11 +37,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _controller.nameController.text = profileProvider.userName ?? '';
       _controller.emailController.text = profileProvider.userEmail ?? '';
       _controller.phoneController.text = profileProvider.phone ?? '';
-      if (profileProvider.emergencyContact != null) {
-        final split = profileProvider.emergencyContact!.split(' - ');
-        _controller.emergencyNameController.text = split.first;
-        _controller.emergencyPhoneController.text = split.last;
-      }
       _controller.currentImageUrl = profileProvider.profileImage;
       _controller.fetchUserData();
       setState(() {});
@@ -64,19 +60,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 // Header with gradient background
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 40,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFF16A085).withOpacity(0.9),
-                        const Color(0xFF8B4513).withOpacity(0.7),
-                      ],
-                    ),
+                    color: kDeepTeal,
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(24),
                       bottomRight: Radius.circular(24),
@@ -89,8 +75,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
+                      // Centered title
+                      const Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       // Back button
                       Align(
                         alignment: Alignment.topLeft,
@@ -100,83 +96,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             Icons.arrow_back_ios,
                             color: Colors.white,
                           ),
-                        ),
-                      ),
-                      // Profile Image
-                      InkWell(
-                        onTap: () async {
-                          final picker = ImagePicker();
-                          await _controller.pickImage(picker);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.white,
-                                const Color(0xFF16A085).withOpacity(0.3),
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 45,
-                                backgroundColor: const Color(0xFFE8F8F5),
-                                backgroundImage:
-                                    _controller.selectedImage != null
-                                    ? FileImage(_controller.selectedImage!)
-                                    : (_controller.currentImageUrl != null &&
-                                          _controller
-                                              .currentImageUrl!
-                                              .isNotEmpty)
-                                    ? _controller.currentImageUrl!.startsWith(
-                                            'http',
-                                          )
-                                          ? NetworkImage(
-                                              _controller.currentImageUrl!,
-                                            )
-                                          : FileImage(
-                                              File(
-                                                _controller.currentImageUrl!,
-                                              ),
-                                            )
-                                    : AssetImage(ImageLocation.climber)
-                                          as ImageProvider,
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: CircleAvatar(
-                                  backgroundColor: Colors.white,
-                                  radius: 16,
-                                  child: const Icon(
-                                    Icons.edit,
-                                    color: Colors.black87,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        "Edit Profile",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
@@ -206,6 +125,75 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Moved avatar picker into the form section
+                          Center(
+                            child: InkWell(
+                              onTap: () async {
+                                final picker = ImagePicker();
+                                await _controller.pickImage(picker);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: kDeepTeal,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 45,
+                                      backgroundColor: const Color(0xFFE8F8F5),
+                                      backgroundImage:
+                                          _controller.selectedImage != null
+                                          ? FileImage(
+                                              _controller.selectedImage!,
+                                            )
+                                          : (_controller.currentImageUrl !=
+                                                    null &&
+                                                _controller
+                                                    .currentImageUrl!
+                                                    .isNotEmpty)
+                                          ? _controller.currentImageUrl!
+                                                    .startsWith('http')
+                                                ? NetworkImage(
+                                                    _controller
+                                                        .currentImageUrl!,
+                                                  )
+                                                : FileImage(
+                                                    File(
+                                                      _controller
+                                                          .currentImageUrl!,
+                                                    ),
+                                                  )
+                                          : AssetImage(ImageLocation.climber)
+                                                as ImageProvider,
+                                    ),
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: CircleAvatar(
+                                        backgroundColor: Colors.white,
+                                        radius: 16,
+                                        child: const Icon(
+                                          Icons.edit,
+                                          color: Colors.black87,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           _buildTextField(
                             label: "Full Name",
                             controller: _controller.nameController,
@@ -226,18 +214,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             inputType: TextInputType.phone,
                           ),
                           const SizedBox(height: 16),
-                          _buildTextField(
-                            label: "Emergency Contact Name",
-                            controller: _controller.emergencyNameController,
-                            icon: Icons.person_pin_circle_outlined,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            label: "Emergency Contact Phone",
-                            controller: _controller.emergencyPhoneController,
-                            icon: Icons.call_outlined,
-                            inputType: TextInputType.phone,
-                          ),
+                          const SizedBox(height: 0),
                         ],
                       ),
                     ),
@@ -279,8 +256,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             'profileImage': _controller.selectedImage != null
                                 ? _controller.selectedImage!.path
                                 : _controller.currentImageUrl,
-                            'emergencyContact':
-                                '${_controller.emergencyNameController.text} - ${_controller.emergencyPhoneController.text}',
                             'totalHikes': profileProvider.totalSoloHikes,
                             'totalDistance': profileProvider.totalGroupHikes,
                           });
@@ -289,7 +264,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A085),
+                        backgroundColor: kDeepForest,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

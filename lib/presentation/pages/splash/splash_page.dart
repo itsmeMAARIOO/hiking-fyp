@@ -1,7 +1,7 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hikingapp/config/images/image_locations.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/utils/loading_helper.dart';
 import 'splash_controller.dart';
 
@@ -15,20 +15,6 @@ class SplashPage extends StatefulWidget {
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _textController;
-
-  final List<String> backgroundGifs = [
-    ImageLocation.climber,
-    ImageLocation.icemount,
-    ImageLocation.mountain,
-    ImageLocation.mountains,
-    ImageLocation.rocky,
-    ImageLocation.route,
-    ImageLocation.summit,
-    ImageLocation.volcano,
-    ImageLocation.winter,
-  ];
-
-  final Random _random = Random();
 
   @override
   void initState() {
@@ -58,31 +44,61 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final SplashController controller = Get.put(SplashController());
-    final size = MediaQuery.of(context).size;
-    final rows = (size.height / 50).ceil();
-    final cols = (size.width / 50).ceil();
 
     return Scaffold(
       body: Stack(
         children: [
-          // Background GIFs
-          for (int r = 0; r < rows; r++)
-            for (int c = 0; c < cols; c++)
-              Positioned(
-                top: r * 50 + _random.nextDouble() * 25,
-                left: c * 50 + _random.nextDouble() * 25,
-                child: Opacity(
-                  opacity: 0.1 + _random.nextDouble() * 0.15,
-                  child: Transform.rotate(
-                    angle: _random.nextDouble() * 0.5 - 0.25,
-                    child: Image.asset(
-                      backgroundGifs[_random.nextInt(backgroundGifs.length)],
-                      width: 25 + _random.nextDouble() * 25,
-                      height: 25 + _random.nextDouble() * 25,
-                    ),
-                  ),
-                ),
+          // Branded gradient background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [kDeepTeal, kDeepForest],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+            ),
+          ),
+
+          // Soft decorative blobs for depth
+          Positioned(
+            top: -80,
+            left: -60,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: kSoftMint.withOpacity(0.15),
+                boxShadow: [
+                  BoxShadow(
+                    color: kSoftMint.withOpacity(0.25),
+                    blurRadius: 80,
+                    spreadRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -60,
+            right: -40,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: kMediumSage.withOpacity(0.15),
+                boxShadow: [
+                  BoxShadow(
+                    color: kMediumSage.withOpacity(0.25),
+                    blurRadius: 80,
+                    spreadRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // Center content
           Center(
             child: Column(
@@ -96,22 +112,23 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                     ),
                   ),
                   child: Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      color: const Color.fromARGB(255, 18, 66, 20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.4),
-                          blurRadius: 40,
-                          spreadRadius: 10,
+                          color: kDeepTeal.withOpacity(0.4),
+                          blurRadius: 36,
+                          spreadRadius: 8,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
                     child: Image.asset(
                       ImageLocation.appLogo,
-                      width: 150,
-                      height: 150,
+                      width: 140,
+                      height: 140,
                     ),
                   ),
                 ),
@@ -134,26 +151,27 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                         Text(
                           "TrailGuard",
                           style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w800,
                             color: Colors.white,
+                            letterSpacing: 0.5,
                             shadows: [
                               Shadow(
-                                offset: Offset(2, 2),
-                                blurRadius: 4,
-                                color: Colors.black87,
+                                offset: Offset(2, 3),
+                                blurRadius: 8,
+                                color: Colors.black38,
                               ),
                             ],
                           ),
                         ),
                         SizedBox(height: 10),
                         Text(
-                          "YOUR ADVENTURE COMPANION",
+                          "Your adventure companion",
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            letterSpacing: 2,
-                            color: Color.fromARGB(255, 21, 78, 22),
+                            letterSpacing: 1.2,
+                            color: kSoftMint,
                           ),
                         ),
                       ],
@@ -161,7 +179,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                   ),
                 ),
                 const SizedBox(height: 30),
-                LoadingHelper(imagePath: ImageLocation.loading, size: 50),
+                // LoadingHelper(imagePath: ImageLocation.loading, size: 50),
               ],
             ),
           ),

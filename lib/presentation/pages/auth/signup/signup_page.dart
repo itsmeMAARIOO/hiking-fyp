@@ -78,8 +78,10 @@ class _SignupPageState extends State<SignupPage> {
                 children: [
                   // Top-left back button
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                    ),
                     onPressed: () => Get.offNamed(AppRoutes.login),
                   ),
                   const SizedBox(height: 8),

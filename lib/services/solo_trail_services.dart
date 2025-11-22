@@ -27,7 +27,6 @@ class SoloTrailServices {
       );
 
       if (res.statusCode == 200) {
-        SnackbarHelper.showSuccess('Trail Saved', 'Your solo trail was saved');
         return true;
       }
 

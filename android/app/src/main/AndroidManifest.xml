@@ -6,6 +6,8 @@
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <!-- Android 13+ notifications permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     
     <application
         android:label="TrailGuard"
