@@ -17,6 +17,7 @@ import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/presentation/pages/dashboard/dashboard_controller.dart';
 import 'package:hikingapp/services/checkin_service.dart';
 import 'package:hikingapp/services/trail_services.dart';
+import 'package:hikingapp/providers/dashboard_provider.dart';
 import 'main_map/widgets/location_display.dart';
 import 'main_map/widgets/trail_slide_card.dart';
 import 'package:hikingapp/presentation/styles/app_styles.dart';
@@ -182,6 +183,22 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
   Future<void> _fetchNearbyTrails({String? keyword}) async {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final loc = mapProvider.currentLocation;
+
+    final online = Provider.of<DashboardProvider>(
+      context,
+      listen: false,
+    ).isOnline;
+    if (!online) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = _places.isNotEmpty
+              ? null
+              : 'Offline: nearby trails unavailable.';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
     if (loc == null) {
       if (mounted) {
@@ -545,6 +562,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context);
+    final isOnline = Provider.of<DashboardProvider>(context).isOnline;
     final media = MediaQuery.of(context);
 
     return Scaffold(
@@ -590,52 +608,175 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: kDeepTeal.withOpacity(0.08),
-                                        blurRadius: 18,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: MainMapWidget(
-                                    mapController: _mapController,
-                                    mapCenter: _mapCenter,
-                                    trailMarkers: _places
-                                        .map(
-                                          (t) => Marker(
-                                            width: 36,
-                                            height: 36,
-                                            point: LatLng(t.lat, t.lon),
-                                            builder: (ctx) => GestureDetector(
-                                              onTap: () => _openTrailSheet(t),
-                                              child: const Icon(
-                                                Icons.terrain,
-                                                color: Colors.green,
-                                                size: 24,
+                                  decoration: isOnline
+                                      ? BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: kDeepTeal.withOpacity(
+                                                0.08,
                                               ),
+                                              blurRadius: 18,
+                                              offset: const Offset(0, 8),
+                                            ),
+                                          ],
+                                        )
+                                      : BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              kSoftMint.withOpacity(0.3),
+                                              Colors.white.withOpacity(0.4),
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(
+                                              0.6,
+                                            ),
+                                            width: 1.5,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: kDeepForest.withOpacity(
+                                                0.08,
+                                              ),
+                                              blurRadius: 25,
+                                              offset: const Offset(0, 10),
+                                            ),
+                                          ],
+                                        ),
+                                  child: isOnline
+                                      ? MainMapWidget(
+                                          mapController: _mapController,
+                                          mapCenter: _mapCenter,
+                                          trailMarkers: _places
+                                              .map(
+                                                (t) => Marker(
+                                                  width: 36,
+                                                  height: 36,
+                                                  point: LatLng(t.lat, t.lon),
+                                                  builder: (ctx) =>
+                                                      GestureDetector(
+                                                        onTap: () =>
+                                                            _openTrailSheet(t),
+                                                        child: const Icon(
+                                                          Icons.terrain,
+                                                          color: Colors.green,
+                                                          size: 24,
+                                                        ),
+                                                      ),
+                                                ),
+                                              )
+                                              .toList(),
+                                          isLoading: _isLoading,
+                                          searchController: _searchController,
+                                          onSearchButtonTap: () {
+                                            FocusScope.of(context).unfocus();
+                                            _fetchNearbyTrails(
+                                              keyword: _searchController.text,
+                                            );
+                                          },
+                                          onSearchSubmit: (v) =>
+                                              _fetchNearbyTrails(keyword: v),
+                                          onClearSearch: () {
+                                            _searchController.clear();
+                                            _onRefresh();
+                                          },
+                                          onMyLocation: _moveToMyLocation,
+                                        )
+                                      : Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 20,
+                                              vertical: 16,
+                                            ),
+                                            margin: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                            ),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.transparent,
+                                            ),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 10,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withOpacity(0.6),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          24,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: Colors.white,
+                                                      width: 1.5,
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: kDeepTeal
+                                                            .withOpacity(0.06),
+                                                        blurRadius: 12,
+                                                        offset: const Offset(
+                                                          0,
+                                                          6,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: const [
+                                                      Icon(
+                                                        Icons.wifi_off_rounded,
+                                                        color: kDeepForest,
+                                                        size: 24,
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      Text(
+                                                        'No Connection',
+                                                        style: TextStyle(
+                                                          color: kDeepForest,
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          letterSpacing: -0.2,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                const Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                  ),
+                                                  child: Text(
+                                                    'Please try again later.',
+                                                    style: TextStyle(
+                                                      color: kDeepForest,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        )
-                                        .toList(),
-                                    isLoading: _isLoading,
-                                    searchController: _searchController,
-                                    onSearchButtonTap: () {
-                                      FocusScope.of(context).unfocus();
-                                      _fetchNearbyTrails(
-                                        keyword: _searchController.text,
-                                      );
-                                    },
-                                    onSearchSubmit: (v) =>
-                                        _fetchNearbyTrails(keyword: v),
-                                    onClearSearch: () {
-                                      _searchController.clear();
-                                      _onRefresh();
-                                    },
-                                    onMyLocation: _moveToMyLocation,
-                                  ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -644,7 +785,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  // below map: card list / pager
+                  // below map: card list / pager (show even when offline to allow cached items)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -664,6 +805,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildCardPager(MapProvider mapProvider) {
+    final isOnline = Provider.of<DashboardProvider>(context).isOnline;
     return TrailCardPager(
       controller: _pageController,
       itemCount: _places.length,
@@ -685,6 +827,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
           onTap: () => _openTrailSheet(t),
         );
       },
+      showOnlyFirstCard: !isOnline,
     );
   }
 

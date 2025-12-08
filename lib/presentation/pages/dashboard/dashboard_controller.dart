@@ -167,7 +167,7 @@ class DashboardController {
             pageBuilder: (context, animation, secondaryAnimation) =>
                 ChangeNotifierProvider.value(
                   value: groupProvider,
-                  child: const TrailGroupPage(),
+                  child: const ActiveTrailPage(),
                 ),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {

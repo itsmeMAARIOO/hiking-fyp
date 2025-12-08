@@ -12,6 +12,7 @@ import 'providers/map_provider.dart';
 import 'presentation/widgets/minimized_trail_bubble.dart';
 import 'presentation/pages/trail/active_trail/active_trail.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hikingapp/services/weather_alert_service.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -93,6 +94,14 @@ class MyApp extends StatelessWidget {
             emergencyProvider.toggleFallDetection(desiredFall);
           }
 
+          final desiredWeatherAlerts =
+              profileProvider.settings['weatherAlerts'] ?? false;
+          if (desiredWeatherAlerts) {
+            WeatherAlertService.enable();
+          } else {
+            WeatherAlertService.disable();
+          }
+
           return Consumer<GroupProvider>(
             builder: (context, groupProvider, _) {
               final mapProvider = Provider.of<MapProvider>(context);
@@ -117,7 +126,7 @@ class MyApp extends StatelessWidget {
                               'Trail Group',
                           onTap: () {
                             groupProvider.setTrailMinimized(false);
-                            Get.to(() => const TrailGroupPage());
+                            Get.to(() => const ActiveTrailPage());
                           },
                         ),
                       ),
@@ -131,7 +140,13 @@ class MyApp extends StatelessWidget {
                           groupName: 'Solo Trail',
                           onTap: () {
                             mapProvider.setSoloTrailMinimized(false);
-                            Get.toNamed(AppRoutes.soloTrail);
+                            Get.toNamed(
+                              AppRoutes.soloTrail,
+                              arguments: {
+                                'isSolo': true,
+                                'trailName': mapProvider.soloTrailName,
+                              },
+                            );
                           },
                         ),
                       ),

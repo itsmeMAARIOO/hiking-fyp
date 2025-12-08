@@ -1,38 +1,71 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
 
 class HikingStatsLineChart extends StatelessWidget {
   final List<Map<String, dynamic>> soloPoints;
   final List<Map<String, dynamic>> groupPoints;
+  final Color colorSolo;
+  final Color colorGroup;
+  final String phase; // 'idle' | 'loading' | 'toChart'
+  final double t; // animation progress 0..1
+  final String period; // 'Month' | 'Year' | 'Week'
 
   const HikingStatsLineChart({
     super.key,
     required this.soloPoints,
     required this.groupPoints,
+    required this.colorSolo,
+    required this.colorGroup,
+    this.phase = 'idle',
+    this.t = 0,
+    this.period = 'Month',
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _LineChartPainter(
+      painter: _NeonChartPainter(
         soloPoints: soloPoints,
         groupPoints: groupPoints,
+        colorSolo: colorSolo,
+        colorGroup: colorGroup,
+        phase: phase,
+        t: t,
+        period: period,
       ),
-      size: const Size(double.infinity, 180),
+      size: const Size(double.infinity, 150),
     );
   }
 }
 
-class _LineChartPainter extends CustomPainter {
+class _NeonChartPainter extends CustomPainter {
   final List<Map<String, dynamic>> soloPoints;
   final List<Map<String, dynamic>> groupPoints;
+  final Color colorSolo;
+  final Color colorGroup;
+  final String phase;
+  final double t;
+  final String period;
 
-  _LineChartPainter({required this.soloPoints, required this.groupPoints});
+  // Fixed styling colors
+  static const Color gridColor = kDeepForest; // Subtle Grey-Green
+  static const Color textColor = kDeepForest; // Light Blue-Grey
+
+  _NeonChartPainter({
+    required this.soloPoints,
+    required this.groupPoints,
+    required this.colorSolo,
+    required this.colorGroup,
+    required this.phase,
+    required this.t,
+    required this.period,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final padding = const EdgeInsets.fromLTRB(50, 16, 16, 36);
+    final padding = const EdgeInsets.fromLTRB(30, 20, 20, 30);
     final chartRect = Rect.fromLTWH(
       padding.left,
       padding.top,
@@ -40,180 +73,327 @@ class _LineChartPainter extends CustomPainter {
       size.height - padding.top - padding.bottom,
     );
 
-    _drawYAxis(canvas, chartRect);
-    _drawXAxis(canvas, chartRect);
+    // 1. Draw Grid
+    _drawGridAndLabels(canvas, chartRect);
 
-    _drawArea(canvas, chartRect, soloPoints, const Color(0xFF6BAF89).withOpacity(0.20));
-    _drawArea(canvas, chartRect, groupPoints, const Color(0xFF3E7B5B).withOpacity(0.15));
+    if (phase == 'loading') {
+      _drawLoadingCircle(canvas, chartRect, colorGroup, 0);
+      _drawLoadingCircle(canvas, chartRect, colorSolo, pi / 2);
+      return;
+    }
 
-    _drawLine(canvas, chartRect, soloPoints, kMediumSage);
-    _drawLine(canvas, chartRect, groupPoints, kDeepForest);
+    final drawGroup = groupPoints.isNotEmpty;
+    final drawSolo = soloPoints.isNotEmpty;
+
+    if (phase == 'toChart') {
+      if (drawGroup) {
+        _drawMorphPath(
+          canvas,
+          chartRect,
+          groupPoints,
+          colorGroup,
+          t,
+          behind: true,
+        );
+      }
+      if (drawSolo) {
+        _drawMorphPath(
+          canvas,
+          chartRect,
+          soloPoints,
+          colorSolo,
+          t,
+          behind: false,
+        );
+      }
+      return;
+    }
+
+    if (drawGroup) {
+      _drawSmoothPath(
+        canvas,
+        chartRect,
+        groupPoints,
+        colorGroup,
+        isFilled: true,
+      );
+    }
+    if (drawSolo) {
+      _drawSmoothPath(canvas, chartRect, soloPoints, colorSolo, isFilled: true);
+    }
   }
 
-  void _drawYAxis(Canvas canvas, Rect chartRect) {
+  void _drawGridAndLabels(Canvas canvas, Rect rect) {
     final textStyle = TextStyle(
-      color: kDeepTeal.withOpacity(0.6),
-      fontSize: 11,
+      color: textColor,
+      fontSize: 10,
       fontWeight: FontWeight.w500,
     );
-
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    // Calculate max value for scaling
     final maxY = _calculateMaxY();
 
-    // Y-axis labels and grid lines
-    for (int i = 0; i <= 4; i++) {
-      final value = (maxY * i / 4).round();
-      final y = chartRect.bottom - (i / 4) * chartRect.height;
+    // Y Axis
+    for (int i = 0; i <= 3; i++) {
+      final value = (maxY * i / 3).round();
+      final y = rect.bottom - (i / 3) * rect.height;
 
-      // Draw grid line
-      final gridPaint = Paint()
-        ..color = kDeepTeal.withOpacity(0.1)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
+      // Dashed Grid
+      final p1 = Offset(rect.left, y);
+      final p2 = Offset(rect.right, y);
+      _drawDashedLine(canvas, p1, p2, gridColor);
 
-      canvas.drawLine(
-        Offset(chartRect.left, y),
-        Offset(chartRect.right, y),
-        gridPaint,
-      );
+      // Labels
+      if (i > 0) {
+        // Don't draw 0 to keep it clean
+        textPainter.text = TextSpan(text: '$value', style: textStyle);
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(rect.left - textPainter.width - 8, y - textPainter.height / 2),
+        );
+      }
+    }
 
-      // Draw Y-axis label
-      textPainter.text = TextSpan(text: '$value', style: textStyle);
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(
-          chartRect.left - textPainter.width - 8,
-          y - textPainter.height / 2,
-        ),
-      );
+    final now = DateTime.now();
+    if (period == 'Week') {
+      final week = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      for (int i = 0; i < 7; i++) {
+        final x = rect.left + (i / 6) * rect.width;
+        textPainter.text = TextSpan(text: week[i], style: textStyle);
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(x - textPainter.width / 2, rect.bottom + 8),
+        );
+      }
+    } else if (period == 'Month') {
+      final end = now.day;
+      final positions = <int>[1, ((end + 1) ~/ 2), end];
+      for (int i = 0; i < positions.length; i++) {
+        final idx = positions[i] - 1;
+        final x = rect.left + (idx / max(1, end - 1)) * rect.width;
+        final label = positions[i].toString();
+        textPainter.text = TextSpan(text: label, style: textStyle);
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(x - textPainter.width / 2, rect.bottom + 8),
+        );
+      }
+    } else {
+      final count = max(soloPoints.length, groupPoints.length);
+      if (count > 1) {
+        final labelsToShow = [0, (count / 2).round(), count - 1];
+        for (int idx in labelsToShow) {
+          if (idx >= 0 && idx < count) {
+            String label = '';
+            if (idx < soloPoints.length) {
+              label = (soloPoints[idx]['label'] ?? '').toString();
+            } else if (idx < groupPoints.length) {
+              label = (groupPoints[idx]['label'] ?? '').toString();
+            }
+            if (label.length > 3) label = label.substring(0, 3);
+            final x = rect.left + (idx / (count - 1)) * rect.width;
+            textPainter.text = TextSpan(text: label, style: textStyle);
+            textPainter.layout();
+            double dx = x - textPainter.width / 2;
+            if (idx == 0) dx = rect.left;
+            if (idx == count - 1) dx = rect.right - textPainter.width;
+            textPainter.paint(canvas, Offset(dx, rect.bottom + 8));
+          }
+        }
+      }
     }
   }
 
-  void _drawXAxis(Canvas canvas, Rect chartRect) {
-    final textStyle = TextStyle(
-      color: kDeepTeal.withOpacity(0.6),
-      fontSize: 11,
-      fontWeight: FontWeight.w500,
-    );
-
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    final count = max(soloPoints.length, groupPoints.length);
-    if (count == 0) return;
-    final tickCount = 6;
-    for (int i = 0; i < tickCount; i++) {
-      final idx = ((i / (tickCount - 1)) * (count - 1)).round();
-      final x = chartRect.left + (idx / max(1, count - 1)) * chartRect.width;
-      final label = _labelAt(idx);
-      textPainter.text = TextSpan(text: label, style: textStyle);
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(x - textPainter.width / 2, chartRect.bottom + 10),
-      );
-    }
-  }
-
-  void _drawLine(
+  void _drawLoadingCircle(
     Canvas canvas,
-    Rect chartRect,
-    List<Map<String, dynamic>> points,
+    Rect rect,
     Color color,
+    double phaseShift,
   ) {
-    if (points.isEmpty) return;
-
-    final maxY = _calculateMaxY();
-    final offsets = <Offset>[];
-
-    final effectivePoints = points;
-
-    for (int i = 0; i < effectivePoints.length; i++) {
-      final y = (effectivePoints[i]['y'] as int) / max(1, maxY).toDouble();
-      final x = i / max(1, effectivePoints.length - 1);
-      final ox = chartRect.left + x * chartRect.width;
-      final oy = chartRect.bottom - y * chartRect.height;
-      offsets.add(Offset(ox, oy));
-    }
-
-    // Smooth cubic line
-    final path = Path();
-    path.moveTo(offsets.first.dx, offsets.first.dy);
-
-    for (int i = 1; i < offsets.length; i++) {
-      final p0 = offsets[i - 1];
-      final p1 = offsets[i];
-      final mx = (p0.dx + p1.dx) / 2;
-      path.quadraticBezierTo(mx, p0.dy, p1.dx, p1.dy);
-    }
-
-    // Draw the line
-    final linePaint = Paint()
+    final center = Offset(
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+    );
+    final radius = min(rect.width, rect.height) * 0.25;
+    final sweep = 2 * pi * (0.2 + 0.8 * (t % 1));
+    final start = phaseShift + 2 * pi * (t % 1);
+    final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..isAntiAlias = true;
-
-    canvas.drawPath(path, linePaint);
-
-    // Draw data points as circles
-    final dotPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    for (final offset in offsets) {
-      canvas.drawCircle(offset, 4, dotPaint);
-    }
-  }
-
-  void _drawArea(Canvas canvas, Rect chartRect, List<Map<String, dynamic>> points, Color color) {
-    if (points.isEmpty) return;
-    final maxY = _calculateMaxY();
-    final offsets = <Offset>[];
-    for (int i = 0; i < points.length; i++) {
-      final y = (points[i]['y'] as int? ?? 0) / max(1, maxY).toDouble();
-      final x = i / max(1, points.length - 1);
-      final ox = chartRect.left + x * chartRect.width;
-      final oy = chartRect.bottom - y * chartRect.height;
-      offsets.add(Offset(ox, oy));
-    }
-    if (offsets.isEmpty) return;
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
     final path = Path()
-      ..moveTo(offsets.first.dx, chartRect.bottom);
-    for (int i = 0; i < offsets.length; i++) {
-      final o = offsets[i];
-      path.lineTo(o.dx, o.dy);
-    }
-    path.lineTo(offsets.last.dx, chartRect.bottom);
-    path.close();
-    final paint = Paint()
-      ..shader = LinearGradient(
-        colors: [color, color.withOpacity(0.0)],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(chartRect)
-      ..style = PaintingStyle.fill;
+      ..addArc(Rect.fromCircle(center: center, radius: radius), start, sweep);
     canvas.drawPath(path, paint);
   }
 
-  List<Map<String, dynamic>> _ensureTwelveMonths(
+  void _drawMorphPath(
+    Canvas canvas,
+    Rect rect,
     List<Map<String, dynamic>> points,
-  ) {
-    // If we have exactly 12 points, return as is
-    if (points.length == 12) return points;
-
-    // Otherwise create 12 months with zero values for missing months
-    final List<Map<String, dynamic>> twelveMonths = [];
-    for (int i = 0; i < 12; i++) {
-      final existingPoint = points.firstWhere(
-        (point) => point['x'] == i,
-        orElse: () => {'x': i, 'y': 0},
+    Color color,
+    double progress, {
+    required bool behind,
+  }) {
+    final target = _computeOffsets(rect, points);
+    if (target.isEmpty) return;
+    final center = Offset(
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+    );
+    final radius = min(rect.width, rect.height) * 0.25;
+    final circle = List<Offset>.generate(target.length, (i) {
+      final ang = 2 * pi * (i / max(1, target.length)) + (behind ? 0 : pi / 2);
+      return Offset(
+        center.dx + radius * cos(ang),
+        center.dy + radius * sin(ang),
       );
-      twelveMonths.add(existingPoint);
+    });
+    final e = Curves.easeInOut.transform(progress.clamp(0, 1));
+    final blended = List<Offset>.generate(target.length, (i) {
+      final c = i < circle.length ? circle[i] : center;
+      final t = target[i];
+      return Offset(c.dx * (1 - e) + t.dx * e, c.dy * (1 - e) + t.dy * e);
+    });
+    _drawPathFromOffsets(canvas, blended, rect, color);
+  }
+
+  List<Offset> _computeOffsets(Rect rect, List<Map<String, dynamic>> points) {
+    final maxY = _calculateMaxY();
+    final offsets = <Offset>[];
+    for (int i = 0; i < points.length; i++) {
+      final yVal = (points[i]['y'] as int? ?? 0).toDouble();
+      final x = rect.left + (i / max(1, points.length - 1)) * rect.width;
+      final y = rect.bottom - (yVal / maxY) * rect.height;
+      offsets.add(Offset(x, y));
     }
-    return twelveMonths;
+    return offsets;
+  }
+
+  void _drawPathFromOffsets(
+    Canvas canvas,
+    List<Offset> offsets,
+    Rect rect,
+    Color color,
+  ) {
+    final path = Path()..moveTo(offsets.first.dx, offsets.first.dy);
+    for (int i = 0; i < offsets.length - 1; i++) {
+      final p0 = offsets[i];
+      final p1 = offsets[i + 1];
+      final c1 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p0.dy);
+      final c2 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p1.dy);
+      path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p1.dx, p1.dy);
+    }
+    final glowPaint = Paint()
+      ..color = color.withOpacity(0.2)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawPath(path, glowPaint);
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(path, linePaint);
+  }
+
+  void _drawSmoothPath(
+    Canvas canvas,
+    Rect rect,
+    List<Map<String, dynamic>> points,
+    Color color, {
+    bool isFilled = false,
+  }) {
+    final maxY = _calculateMaxY();
+    final path = Path();
+    final offsets = <Offset>[];
+
+    for (int i = 0; i < points.length; i++) {
+      final yVal = (points[i]['y'] as int? ?? 0).toDouble();
+      final x = rect.left + (i / (points.length - 1)) * rect.width;
+      final y = rect.bottom - (yVal / maxY) * rect.height;
+      offsets.add(Offset(x, y));
+    }
+
+    if (offsets.isEmpty) return;
+
+    path.moveTo(offsets.first.dx, offsets.first.dy);
+
+    for (int i = 0; i < offsets.length - 1; i++) {
+      final p0 = offsets[i];
+      final p1 = offsets[i + 1];
+      final controlPoint1 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p0.dy);
+      final controlPoint2 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p1.dy);
+      path.cubicTo(
+        controlPoint1.dx,
+        controlPoint1.dy,
+        controlPoint2.dx,
+        controlPoint2.dy,
+        p1.dx,
+        p1.dy,
+      );
+    }
+
+    // 1. Gradient Fill
+    if (isFilled) {
+      final fillPath = Path.from(path);
+      fillPath.lineTo(rect.right, rect.bottom);
+      fillPath.lineTo(rect.left, rect.bottom);
+      fillPath.close();
+
+      final fillPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withOpacity(0.25), color.withOpacity(0.0)],
+        ).createShader(rect)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawPath(fillPath, fillPaint);
+    }
+
+    // 2. Neon Glow
+    final glowPaint = Paint()
+      ..color = color.withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+
+    canvas.drawPath(path, glowPaint);
+
+    // 3. Core Line
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, linePaint);
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset p1, Offset p2, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+    var max = (p2 - p1).distance;
+    var dashWidth = 4.0;
+    var dashSpace = 4.0;
+    double current = 0;
+    while (current < max) {
+      canvas.drawLine(
+        p1 + (p2 - p1) * (current / max),
+        p1 + (p2 - p1) * (min(current + dashWidth, max) / max),
+        paint,
+      );
+      current += dashWidth + dashSpace;
+    }
   }
 
   int _calculateMaxY() {
@@ -221,19 +401,8 @@ class _LineChartPainter extends CustomPainter {
     for (final p in [...soloPoints, ...groupPoints]) {
       maxY = max(maxY, (p['y'] as int? ?? 0));
     }
-    // Round up to nearest nice number for clean Y-axis labels
     if (maxY <= 5) return 5;
-    if (maxY <= 10) return 10;
-    if (maxY <= 20) return 20;
-    if (maxY <= 50) return 50;
-    return ((maxY + 9) ~/ 10) * 10;
-  }
-
-  String _labelAt(int idx) {
-    final list = soloPoints.length >= groupPoints.length ? soloPoints : groupPoints;
-    if (idx < 0 || idx >= list.length) return '';
-    final l = (list[idx]['label'] ?? '').toString();
-    return l;
+    return ((maxY + 4) ~/ 5) * 5;
   }
 
   @override

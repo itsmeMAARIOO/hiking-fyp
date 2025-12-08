@@ -25,10 +25,10 @@ class ModernHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: BoxDecoration(
-        color: kDeepTeal,
+        color: Colors.transparent,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: kDeepTeal.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -41,12 +41,12 @@ class ModernHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: kDeepForest.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.forest_rounded,
-                  color: Colors.white,
+                  color: kDeepForest,
                   size: 24,
                 ),
               ),
@@ -57,8 +57,8 @@ class ModernHeader extends StatelessWidget {
                   children: [
                     Text(
                       groupName.isNotEmpty ? groupName : 'Unnamed Group',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: kDeepTeal.withOpacity(0.85),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -69,7 +69,7 @@ class ModernHeader extends StatelessWidget {
                     Text(
                       trailName.isNotEmpty ? trailName : 'Exploring Trail',
                       style: TextStyle(
-                        color: kSoftMint.withOpacity(0.85),
+                        color: kDeepTeal.withOpacity(0.65),
                         fontSize: 12,
                       ),
                       maxLines: 1,
@@ -110,11 +110,7 @@ class _LiveBadge extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(
-            Icons.fiber_manual_record,
-            color: Colors.white,
-            size: 8,
-          ),
+          Icon(Icons.fiber_manual_record, color: Colors.white, size: 8),
           SizedBox(width: 5),
           Text(
             'LIVE',
@@ -144,14 +140,10 @@ class _DefaultMinimizeButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
+          color: kDeepTeal.withOpacity(0.12),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(
-          Icons.close,
-          color: Colors.white,
-          size: 16,
-        ),
+        child: const Icon(Icons.close, color: kDeepTeal, size: 16),
       ),
     );
   }

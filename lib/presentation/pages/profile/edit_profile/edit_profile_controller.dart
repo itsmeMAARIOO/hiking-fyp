@@ -17,6 +17,12 @@ class EditProfileController extends ChangeNotifier {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
+  final dobController = TextEditingController();
+  final weightController = TextEditingController();
+  final heightController = TextEditingController();
+  final allergiesController = TextEditingController();
+  String? gender;
+  String? bloodType;
   // Emergency contacts managed separately on Profile page
 
   File? selectedImage;
@@ -55,6 +61,28 @@ class EditProfileController extends ChangeNotifier {
         nameController.text = data['name'] ?? '';
         emailController.text = data['email'] ?? '';
         phoneController.text = data['phone'] ?? '';
+        if (data['dateOfBirth'] != null) {
+          try {
+            final dobVal = data['dateOfBirth'];
+            if (dobVal is String) {
+              dobController.text = dobVal.split('T').first;
+            } else {
+              dobController.text = dobVal.toString();
+            }
+          } catch (_) {}
+        }
+        gender = (data['gender'] ?? null) as String?;
+        bloodType = (data['bloodType'] ?? null) as String?;
+        final w = data['weightKg'];
+        final h = data['heightCm'];
+        if (w != null) weightController.text = w.toString();
+        if (h != null) heightController.text = h.toString();
+        if (data['allergies'] is List) {
+          final list = List<String>.from(data['allergies']);
+          allergiesController.text = list.join(', ');
+        } else if (data['allergies'] is String) {
+          allergiesController.text = data['allergies'];
+        }
         // Emergency contacts fetched separately
         currentImageUrl =
             data['profileImage'] != null && data['profileImage'].isNotEmpty
@@ -107,6 +135,15 @@ class EditProfileController extends ChangeNotifier {
       request.fields['name'] = nameController.text;
       request.fields['email'] = emailController.text;
       request.fields['phone'] = phoneController.text;
+      if (dobController.text.isNotEmpty) {
+        final iso = DateTime.tryParse(dobController.text)?.toIso8601String() ?? dobController.text;
+        request.fields['dateOfBirth'] = iso;
+      }
+      if (gender != null) request.fields['gender'] = gender!;
+      if (bloodType != null) request.fields['bloodType'] = bloodType!;
+      if (weightController.text.isNotEmpty) request.fields['weightKg'] = weightController.text;
+      if (heightController.text.isNotEmpty) request.fields['heightCm'] = heightController.text;
+      if (allergiesController.text.isNotEmpty) request.fields['allergies'] = allergiesController.text;
       // Emergency contacts are updated via dedicated APIs
 
       if (selectedImage != null) {

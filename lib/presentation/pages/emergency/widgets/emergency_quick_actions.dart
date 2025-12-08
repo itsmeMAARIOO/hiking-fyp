@@ -9,8 +9,9 @@ class QuickActionsButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final emergencyProvider = Provider.of<EmergencyProvider>(context, listen: false);
-    final isSending = Provider.of<EmergencyProvider>(context).isSendingLocation;
+    final emergencyProvider = Provider.of<EmergencyProvider>(context);
+    final isSending = emergencyProvider.isSendingLocation;
+    final sosActive = emergencyProvider.sosActive;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,7 +29,7 @@ class QuickActionsButtons extends StatelessWidget {
                 ),
                 icon: Icons.emergency_rounded,
                 title: "Emergency",
-                subtitle: "Call 999",
+                subtitle: "Call",
                 accentColor: Colors.red.shade300,
               ),
             ),
@@ -54,16 +55,25 @@ class QuickActionsButtons extends StatelessWidget {
             // Share Location Button
             Expanded(
               child: _NatureActionButton(
-                onPressed: () => emergencyProvider.shareLocation(context),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [kDeepTeal, const Color(0xFF1a2f2f)],
-                ),
+                onPressed: () => sosActive
+                    ? emergencyProvider.shareEmergencyLocation(context)
+                    : emergencyProvider.shareLocation(context),
+                gradient: sosActive
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.red.shade600, Colors.red.shade800],
+                      )
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [kDeepTeal, const Color(0xFF1a2f2f)],
+                      ),
                 icon: Icons.share_location_rounded,
-                title: "Share",
-                subtitle: "Location",
-                accentColor: kSoftMint,
+                title: sosActive ? "Emergency" : "Share",
+                subtitle: sosActive ? "Location" : "Location",
+                accentColor:
+                    sosActive ? Colors.red.shade300 : kSoftMint,
                 isLoading: isSending,
               ),
             ),
@@ -218,9 +228,10 @@ class _NatureActionButtonState extends State<_NatureActionButton>
                                         height: 22,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2.5,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
                                         ),
                                       )
                                     : Icon(

@@ -1,4 +1,4 @@
-// 📄 hiking-backend/routes/users.js
+// hiking-backend/routes/users_temp.js
 import express from "express";
 import multer from "multer";
 import cloudinary from "./cloudinary.js";
@@ -30,7 +30,18 @@ router.get("/:userId", async (req, res) => {
 // ✅ UPDATE user profile (with optional image)
 router.post("/update", upload.single("profileImage"), async (req, res) => {
   try {
-    const { userId, name, email, phone } = req.body;
+    const {
+      userId,
+      name,
+      email,
+      phone,
+      dateOfBirth,
+      gender,
+      weightKg,
+      heightCm,
+      bloodType,
+      allergies,
+    } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -41,6 +52,21 @@ router.post("/update", upload.single("profileImage"), async (req, res) => {
       email,
       phone,
     };
+
+    if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
+    if (gender) updateData.gender = gender;
+    if (typeof weightKg !== "undefined") updateData.weightKg = Number(weightKg);
+    if (typeof heightCm !== "undefined") updateData.heightCm = Number(heightCm);
+    if (bloodType) updateData.bloodType = bloodType;
+
+    if (Array.isArray(allergies)) {
+      updateData.allergies = allergies.filter((x) => typeof x === "string");
+    } else if (typeof allergies === "string") {
+      updateData.allergies = allergies
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+    }
 
     // ✅ Handle profile image via Cloudinary (do not save locally)
     if (req.file) {
@@ -94,9 +120,17 @@ router.post("/emergency-contacts/add", async (req, res) => {
       return res.status(400).json({ message: "Maximum 5 emergency contacts" });
     }
     const { name, email, phone } = contact;
-    user.emergencyContacts.push({ name: name || "", email: email || "", phone: phone || "", share: false });
+    user.emergencyContacts.push({
+      name: name || "",
+      email: email || "",
+      phone: phone || "",
+      share: false,
+    });
     await user.save();
-    res.json({ message: "Contact added", emergencyContacts: user.emergencyContacts });
+    res.json({
+      message: "Contact added",
+      emergencyContacts: user.emergencyContacts,
+    });
   } catch (error) {
     console.error("❌ Add emergency contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -118,7 +152,10 @@ router.post("/emergency-contacts/remove", async (req, res) => {
     }
     user.emergencyContacts.splice(index, 1);
     await user.save();
-    res.json({ message: "Contact removed", emergencyContacts: user.emergencyContacts });
+    res.json({
+      message: "Contact removed",
+      emergencyContacts: user.emergencyContacts,
+    });
   } catch (error) {
     console.error("❌ Remove emergency contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -147,7 +184,10 @@ router.post("/emergency-contacts/update", async (req, res) => {
       share: existing.share === true,
     };
     await user.save();
-    res.json({ message: "Contact updated", emergencyContacts: user.emergencyContacts });
+    res.json({
+      message: "Contact updated",
+      emergencyContacts: user.emergencyContacts,
+    });
   } catch (error) {
     console.error("❌ Update emergency contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -169,7 +209,10 @@ router.post("/emergency-contacts/share-toggle", async (req, res) => {
     const value = share === true || share === "true";
     user.emergencyContacts[index].share = value;
     await user.save();
-    res.json({ message: "Share preference updated", emergencyContacts: user.emergencyContacts });
+    res.json({
+      message: "Share preference updated",
+      emergencyContacts: user.emergencyContacts,
+    });
   } catch (error) {
     console.error("❌ Share toggle error:", error);
     res.status(500).json({ message: "Server error", error: error.message });

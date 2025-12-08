@@ -130,6 +130,7 @@ class GroupProvider with ChangeNotifier {
     required String createdBy,
     required String creatorName,
     String? trailName,
+    String? trailDescription,
     List<GroupMember>? invitedMembers,
   }) async {
     _isLoading = true;
@@ -158,6 +159,7 @@ class GroupProvider with ChangeNotifier {
           'createdBy': createdBy,
           'creatorName': creatorName,
           'trailName': trailName ?? "Unnamed Trail",
+          'trailDescription': trailDescription,
           'invitedMembers': membersData ?? [],
         }),
       );
@@ -253,6 +255,7 @@ class GroupProvider with ChangeNotifier {
     required String userId,
     required String userName,
     String? trailName,
+    String? trailDescription,
   }) async {
     if (_isUpdatingLocation) return; // prevent overlapping requests
     _isUpdatingLocation = true;
@@ -272,6 +275,7 @@ class GroupProvider with ChangeNotifier {
         body: jsonEncode({
           'userId': userId,
           'trailName': trailName ?? 'Unnamed Trail',
+          'trailDescription': trailDescription,
           'latitude': pos.latitude,
           'longitude': pos.longitude,
         }),
@@ -302,6 +306,7 @@ class GroupProvider with ChangeNotifier {
     required String userName,
     bool forSolo = false,
     String? trailName,
+    String? trailDescription,
   }) {
     stopLocationUpdates(); // ensure only one timer exists
     if (forSolo) {
@@ -309,12 +314,14 @@ class GroupProvider with ChangeNotifier {
         userId: userId,
         userName: userName,
         trailName: trailName,
+        trailDescription: trailDescription,
       );
       _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         _updateSoloLocation(
           userId: userId,
           userName: userName,
           trailName: trailName,
+          trailDescription: trailDescription,
         );
       });
       // Do NOT start stats timer here for solo; solo page manages its own UI timer
@@ -366,8 +373,7 @@ class GroupProvider with ChangeNotifier {
         _lastError = null;
         debugPrint("✅ Solo trail completed and saved");
       } else {
-        _lastError =
-            "Failed to complete solo trail (${response.statusCode})";
+        _lastError = "Failed to complete solo trail (${response.statusCode})";
         debugPrint("❌ Failed to save solo trail: ${response.body}");
       }
     } catch (e) {

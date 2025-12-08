@@ -2,12 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:hikingapp/config/api_config.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:hikingapp/providers/trail_provider.dart';
-import 'package:hikingapp/presentation/styles/colors.dart';
+import 'package:hikingapp/presentation/widgets/app_action_dialog.dart';
 
 class TrailServices {
   final String baseUrl = ApiConfig.baseUrl;
@@ -64,190 +65,52 @@ class TrailServices {
 
     final isCreator = group['createdBy'].toString() == userId;
 
-    showDialog(
+    Future<void> _handleResult(String? result) async {
+      if (result != 'confirm') return;
+
+      final navigator = Navigator.of(context);
+      try {
+        bool success = false;
+        String? errorMessage;
+        if (isCreator) {
+          success = await provider.endTrail(userId);
+          if (!success && provider.lastError != null) {
+            errorMessage = provider.lastError;
+          }
+        } else {
+          await provider.leaveGroup(userId);
+          success = true;
+        }
+
+        Get.offAllNamed('/dashboard', arguments: {'tab': 3});
+        if (success) {
+          final msg = isCreator
+              ? 'Trail ended for all members'
+              : 'You left the group';
+          SnackbarHelper.showSuccess('Success', msg);
+        } else {
+          final msg = 'Failed: ${errorMessage ?? "Unknown error"}';
+          SnackbarHelper.showError('Error', msg);
+        }
+      } catch (e) {
+        navigator.pop();
+        SnackbarHelper.showError('Error', '⚠️ Failed: ${e.toString()}');
+      }
+    }
+
+    showDialog<String>(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B6B).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isCreator ? Icons.flag_rounded : Icons.exit_to_app_rounded,
-                  color: const Color(0xFFFF6B6B),
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                isCreator ? 'End Trail?' : 'Leave Group?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: kDeepTeal,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isCreator
-                    ? 'This will end the trail for all members and disband the group.'
-                    : 'Are you sure you want to leave this group?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: kDeepTeal.withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: _buildCancelButton(context)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildActionButton(
-                      context,
-                      provider,
-                      userId,
-                      isCreator,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+      builder: (context) => AppActionDialog(
+        title: isCreator ? 'End Trail?' : 'Leave Group?',
+        icon: isCreator ? Icons.flag_rounded : Icons.exit_to_app_rounded,
+        message: isCreator
+            ? 'This will end the trail for all members'
+            : 'Are you sure to leave ?',
+        cancelText: 'Cancel',
+        confirmText: isCreator ? 'End Trail' : 'Leave Group',
+        confirmColor: kFreshRed.withOpacity(0.6),
       ),
-    );
-  }
-
-  static Widget _buildCancelButton(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: kDeepTeal.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.of(context).pop(),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kSoftMint.withOpacity(0.3)),
-            ),
-            child: const Text(
-              'Cancel',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: kDeepTeal, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  static Widget _buildActionButton(
-    BuildContext context,
-    GroupProvider provider,
-    String userId,
-    bool isCreator,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF6B6B).withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () async {
-            // Get the navigator before any async operations
-            final navigator = Navigator.of(context);
-
-            // Close dialog first
-            navigator.pop();
-
-            bool success = false;
-            String? errorMessage;
-
-            try {
-              if (isCreator) {
-                // Creator ends trail for everyone
-                success = await provider.endTrail(userId);
-                if (!success && provider.lastError != null) {
-                  errorMessage = provider.lastError;
-                }
-              } else {
-                // Joiner just leaves the group
-                await provider.leaveGroup(userId);
-                success = true;
-              }
-            } catch (e) {
-              errorMessage = e.toString();
-            }
-
-            // Navigate back to dashboard first
-            Get.offAllNamed('/dashboard', arguments: {'tab': 3});
-
-            // Show snackbar after navigation using SnackbarHelper
-            if (success) {
-              final msg = isCreator
-                  ? '🏁 Trail ended for all members'
-                  : '👋 You left the group';
-              SnackbarHelper.showSuccess('Success', msg);
-            } else {
-              final msg = '⚠️ Failed: ${errorMessage ?? "Unknown error"}';
-              SnackbarHelper.showError('Error', msg);
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF6B6B), Color(0xFFFF5252)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              isCreator ? 'End Trail' : 'Leave Group',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    ).then(_handleResult);
   }
 
   Future<Map<String, dynamic>?> checkInvitation(String userId) async {

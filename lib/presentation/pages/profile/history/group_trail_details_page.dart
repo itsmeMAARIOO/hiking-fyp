@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/services/history_service.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
@@ -10,6 +9,7 @@ import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/chat/cha
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/library/library_tab.dart';
 import 'widgets/group_path_replay_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:hikingapp/providers/dashboard_provider.dart';
 
 class GroupTrailDetailsPage extends StatefulWidget {
   const GroupTrailDetailsPage({super.key});
@@ -22,7 +22,6 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
     with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _group;
   bool _loading = true;
-  String? _error;
   late TabController _tabController;
   List<MemberPath> _memberPaths = [];
   DateTime? _start;
@@ -41,13 +40,11 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
     if (groupId.isEmpty) {
       setState(() {
         _loading = false;
-        _error = 'Missing groupId';
       });
       return;
     }
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       _group = await HistoryService.fetchGroupDetails(groupId);
@@ -83,34 +80,112 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
           path: pts,
         );
       }).toList();
-    } catch (e) {
-      _error = e.toString();
-    }
+    } catch (e) {}
     setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = (_group?['groupName'] ?? 'Group Trail').toString();
+    (_group?['groupName'] ?? 'Group Trail').toString();
+    final isOnline = Provider.of<DashboardProvider>(context).isOnline;
     return Scaffold(
       backgroundColor: kLightCream,
       body: SafeArea(
         child: Column(
           children: [
-            CommonHeader(title: title, lastError: _error),
             _buildTabBar(),
             Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildDetails(),
-                        _buildMembers(),
-                        _buildChat(),
-                        _buildLibrary(),
-                      ],
-                    ),
+              child: !isOnline
+                  ? Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        margin: const EdgeInsets.symmetric(horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kDeepTeal.withOpacity(0.08),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: kDeepForest.withOpacity(0.08),
+                                    blurRadius: 25,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(
+                                    Icons.wifi_off_rounded,
+                                    color: kDeepForest,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'No Connection',
+                                    style: TextStyle(
+                                      color: kDeepForest,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                'Please try again later.',
+                                style: TextStyle(
+                                  color: kDeepForest,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : (_loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildDetails(),
+                              _buildMembers(),
+                              _buildChat(),
+                              _buildLibrary(),
+                            ],
+                          )),
             ),
           ],
         ),
@@ -163,10 +238,10 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
       if (endRaw is String) end = DateTime.parse(endRaw);
     } catch (_) {}
     final startStr = start != null
-        ? DateFormat('d MMM yyyy, HH:mm').format(start!.toLocal())
+        ? DateFormat('d MMM yyyy, HH:mm').format(start.toLocal())
         : '-';
     final endStr = end != null
-        ? DateFormat('d MMM yyyy, HH:mm').format(end!.toLocal())
+        ? DateFormat('d MMM yyyy, HH:mm').format(end.toLocal())
         : '-';
 
     // Build fallback points from trail path
@@ -205,7 +280,11 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
             value: trailName.isNotEmpty ? trailName : 'Unnamed Trail',
           ),
           const SizedBox(height: 12),
-          _InfoCard(icon: Icons.play_arrow_rounded, title: 'Start', value: startStr),
+          _InfoCard(
+            icon: Icons.play_arrow_rounded,
+            title: 'Start',
+            value: startStr,
+          ),
           const SizedBox(height: 12),
           _InfoCard(icon: Icons.stop_rounded, title: 'End', value: endStr),
           const SizedBox(height: 16),
@@ -304,8 +383,10 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: kSoftMint.withOpacity(0.25),
                   borderRadius: BorderRadius.circular(12),

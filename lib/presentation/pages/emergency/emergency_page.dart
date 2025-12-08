@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:hikingapp/presentation/pages/emergency/widgets/emergency_quick_actions.dart';
-import 'package:hikingapp/presentation/pages/profile/main_profile/widgets/emergency_contact_card.dart';
+import 'package:hikingapp/presentation/pages/emergency/widgets/emergency_contact_card.dart';
 import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
@@ -58,7 +58,12 @@ class EmergencyPage extends StatelessWidget {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    0,
+                    20,
+                    MediaQuery.of(context).padding.bottom + 5,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [

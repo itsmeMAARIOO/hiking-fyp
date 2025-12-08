@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:hikingapp/services/history_service.dart';
 import 'package:provider/provider.dart';
+import 'package:hikingapp/services/weather_alert_service.dart';
 
 class ProfileController {
   final BuildContext context;
@@ -55,7 +56,9 @@ class ProfileController {
     if (userId == null) return;
     final provider = Provider.of<ProfileProvider>(context, listen: false);
     try {
-      final url = Uri.parse("${ApiConfig.baseUrl}/users/emergency-contacts/add");
+      final url = Uri.parse(
+        "${ApiConfig.baseUrl}/users/emergency-contacts/add",
+      );
       final resp = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -68,12 +71,14 @@ class ProfileController {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (data['emergencyContacts'] as List<dynamic>? ?? []);
         provider.emergencyContacts = list
-            .map((c) => {
-                  'name': (c['name'] ?? '').toString(),
-                  'email': (c['email'] ?? '').toString(),
-                  'phone': (c['phone'] ?? '').toString(),
-                  'share': ((c['share'] ?? false) as bool).toString(),
-                })
+            .map(
+              (c) => {
+                'name': (c['name'] ?? '').toString(),
+                'email': (c['email'] ?? '').toString(),
+                'phone': (c['phone'] ?? '').toString(),
+                'share': ((c['share'] ?? false) as bool).toString(),
+              },
+            )
             .toList();
         provider.notifyListeners();
       }
@@ -84,7 +89,9 @@ class ProfileController {
     if (userId == null) return;
     final provider = Provider.of<ProfileProvider>(context, listen: false);
     try {
-      final url = Uri.parse("${ApiConfig.baseUrl}/users/emergency-contacts/remove");
+      final url = Uri.parse(
+        "${ApiConfig.baseUrl}/users/emergency-contacts/remove",
+      );
       final resp = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -94,12 +101,14 @@ class ProfileController {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (data['emergencyContacts'] as List<dynamic>? ?? []);
         provider.emergencyContacts = list
-            .map((c) => {
-                  'name': (c['name'] ?? '').toString(),
-                  'email': (c['email'] ?? '').toString(),
-                  'phone': (c['phone'] ?? '').toString(),
-                  'share': ((c['share'] ?? false) as bool).toString(),
-                })
+            .map(
+              (c) => {
+                'name': (c['name'] ?? '').toString(),
+                'email': (c['email'] ?? '').toString(),
+                'phone': (c['phone'] ?? '').toString(),
+                'share': ((c['share'] ?? false) as bool).toString(),
+              },
+            )
             .toList();
         provider.notifyListeners();
       }
@@ -110,26 +119,26 @@ class ProfileController {
     if (userId == null) return false;
     final provider = Provider.of<ProfileProvider>(context, listen: false);
     try {
-      final url = Uri.parse("${ApiConfig.baseUrl}/users/emergency-contacts/share-toggle");
+      final url = Uri.parse(
+        "${ApiConfig.baseUrl}/users/emergency-contacts/share-toggle",
+      );
       final resp = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "userId": userId,
-          "index": index,
-          "share": share,
-        }),
+        body: jsonEncode({"userId": userId, "index": index, "share": share}),
       );
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (data['emergencyContacts'] as List<dynamic>? ?? []);
         provider.emergencyContacts = list
-            .map((c) => {
-                  'name': (c['name'] ?? '').toString(),
-                  'email': (c['email'] ?? '').toString(),
-                  'phone': (c['phone'] ?? '').toString(),
-                  'share': ((c['share'] ?? false) as bool).toString(),
-                })
+            .map(
+              (c) => {
+                'name': (c['name'] ?? '').toString(),
+                'email': (c['email'] ?? '').toString(),
+                'phone': (c['phone'] ?? '').toString(),
+                'share': ((c['share'] ?? false) as bool).toString(),
+              },
+            )
             .toList();
         provider.notifyListeners();
         return true;
@@ -215,8 +224,18 @@ class ProfileController {
       final effectiveYear = filter == 'Year'
           ? (provider.selectedYear ?? DateTime.now().year)
           : null;
-      final soloAgg = _aggregate(solo, filter, isGroup: false, year: effectiveYear);
-      final groupAgg = _aggregate(group, filter, isGroup: true, year: effectiveYear);
+      final soloAgg = _aggregate(
+        solo,
+        filter,
+        isGroup: false,
+        year: effectiveYear,
+      );
+      final groupAgg = _aggregate(
+        group,
+        filter,
+        isGroup: true,
+        year: effectiveYear,
+      );
 
       provider.setHikingStats(
         solo: soloAgg,
@@ -231,7 +250,12 @@ class ProfileController {
     }
   }
 
-  List<Map<String, dynamic>> _aggregate(List<Map<String, dynamic>> raw, String filter, {required bool isGroup, int? year}) {
+  List<Map<String, dynamic>> _aggregate(
+    List<Map<String, dynamic>> raw,
+    String filter, {
+    required bool isGroup,
+    int? year,
+  }) {
     DateTime? _extractEnd(Map<String, dynamic> item) {
       try {
         if (isGroup) {
@@ -240,7 +264,9 @@ class ProfileController {
           if (endRaw is Map && endRaw['\$date'] != null) {
             final d = endRaw['\$date'];
             if (d is Map && d['\$numberLong'] != null) {
-              return DateTime.fromMillisecondsSinceEpoch(int.parse(d['\$numberLong'] as String)).toLocal();
+              return DateTime.fromMillisecondsSinceEpoch(
+                int.parse(d['\$numberLong'] as String),
+              ).toLocal();
             }
           }
         } else {
@@ -261,9 +287,12 @@ class ProfileController {
           return DateFormat('yyyy').format(DateTime(d.year));
         case 'Month':
         default:
-          return DateFormat('yyyy-MM-dd').format(DateTime(d.year, d.month, d.day));
+          return DateFormat(
+            'yyyy-MM-dd',
+          ).format(DateTime(d.year, d.month, d.day));
       }
     }
+
     String labelFor(String key) {
       switch (filter) {
         case 'Year':
@@ -316,17 +345,23 @@ class ProfileController {
     final s = <int>{};
     DateTime? _extractEnd(Map<String, dynamic> item) {
       try {
-        final endRaw = item['activeTrail']?['endTime'] ?? item['endTime'] ?? item['startTime'];
+        final endRaw =
+            item['activeTrail']?['endTime'] ??
+            item['endTime'] ??
+            item['startTime'];
         if (endRaw is String) return DateTime.parse(endRaw).toLocal();
         if (endRaw is Map && endRaw['\$date'] != null) {
           final d = endRaw['\$date'];
           if (d is Map && d['\$numberLong'] != null) {
-            return DateTime.fromMillisecondsSinceEpoch(int.parse(d['\$numberLong'] as String)).toLocal();
+            return DateTime.fromMillisecondsSinceEpoch(
+              int.parse(d['\$numberLong'] as String),
+            ).toLocal();
           }
         }
       } catch (_) {}
       return null;
     }
+
     for (final item in raw) {
       final d = _extractEnd(item);
       if (d != null) s.add(d.year);
@@ -358,6 +393,14 @@ class ProfileController {
       }
     } catch (e) {
       provider.toggleSetting(key, !value);
+    }
+
+    if (key == 'weatherAlerts') {
+      if (value) {
+        await WeatherAlertService.enable();
+      } else {
+        await WeatherAlertService.disable();
+      }
     }
   }
 

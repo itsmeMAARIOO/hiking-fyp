@@ -11,11 +11,19 @@ class DashboardProvider extends ChangeNotifier {
   DateTime? _lastCheckIn;
   int _groupMembers = 0;
 
+  String? _currentUserId;
+  late final AuthProvider _authProvider;
+  late final VoidCallback _authListener;
+
   final CheckInService _checkInService = CheckInService();
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
   DashboardProvider(AuthProvider authProvider) {
+    _authProvider = authProvider;
+    _authListener = _onAuthChanged;
+    _authProvider.addListener(_authListener);
+
     _initConnectivity();
 
     // Listen to connectivity changes
@@ -23,11 +31,8 @@ class DashboardProvider extends ChangeNotifier {
       _updateConnectionStatus,
     );
 
-    // Fetch last check-in if userId exists
-    final userId = authProvider.userId;
-    if (userId != null) {
-      fetchLastCheckInOnInit(userId);
-    }
+    // Initial sync with auth state
+    _onAuthChanged();
   }
 
   // ===== Getters =====
@@ -83,6 +88,23 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _onAuthChanged() {
+    final newUserId = _authProvider.userId;
+    if (newUserId == _currentUserId) return;
+
+    _currentUserId = newUserId;
+
+    // Clear stale check-in when user logs out or switches accounts
+    if (newUserId == null) {
+      _lastCheckIn = null;
+      notifyListeners();
+      return;
+    }
+
+    // Fetch last check-in for the new user
+    fetchLastCheckInOnInit(newUserId);
+  }
+
   Future<void> fetchLastCheckInOnInit(String userId) async {
     try {
       final fetched = await _checkInService.fetchLastCheckIn(userId);
@@ -98,6 +120,8 @@ class DashboardProvider extends ChangeNotifier {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    // Remove auth listener to avoid leaks
+    _authProvider.removeListener(_authListener);
     super.dispose();
   }
 }

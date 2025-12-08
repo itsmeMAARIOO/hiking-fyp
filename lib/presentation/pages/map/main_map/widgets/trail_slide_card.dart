@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/presentation/pages/map/saved/saved_trails_page.dart';
+import 'package:provider/provider.dart';
+import 'package:hikingapp/providers/dashboard_provider.dart';
 
 class TrailCardPager extends StatelessWidget {
   final PageController controller;
@@ -11,6 +13,7 @@ class TrailCardPager extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback? onFirstCardShown;
+  final bool showOnlyFirstCard;
 
   const TrailCardPager({
     super.key,
@@ -21,10 +24,22 @@ class TrailCardPager extends StatelessWidget {
     required this.isLoading,
     this.errorMessage,
     this.onFirstCardShown,
+    this.showOnlyFirstCard = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (showOnlyFirstCard) {
+      return SizedBox(
+        height: 110,
+        child: PageView.builder(
+          controller: controller,
+          itemCount: 1,
+          itemBuilder: (context, index) => const _SwipeHintCard(),
+        ),
+      );
+    }
+
     if (isLoading && itemCount == 0) {
       return SizedBox(
         height: 110,
@@ -281,90 +296,139 @@ class _SwipeHintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = Provider.of<DashboardProvider>(context).isOnline;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       child: GestureDetector(
-        onTap: () => Get.to(() => const SavedTrailsPage()),
+        onTap: isOnline ? () => Get.to(() => const SavedTrailsPage()) : null,
         child: Container(
           height: 94,
-          decoration: BoxDecoration(
-            color: kSoftMint,
-            borderRadius: BorderRadius.circular(50),
-            border: Border.all(color: kDeepForest.withOpacity(0.6), width: 1.5),
-          ),
+          decoration: isOnline
+              ? BoxDecoration(
+                  color: kSoftMint,
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(
+                    color: kDeepForest.withOpacity(0.6),
+                    width: 1.5,
+                  ),
+                )
+              : BoxDecoration(
+                  color: Colors.white.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kDeepForest.withOpacity(0.08),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [kDeepForest, kDeepTeal],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.bookmark_outline,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Saved Trails',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: kDeepForest,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
+            child: isOnline
+                ? Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [kDeepForest, kDeepTeal],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.bookmark_outline,
+                          color: Colors.white,
+                          size: 18,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'View your saved trail spots',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: kDeepForest,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Saved Trails',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: kDeepForest,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'View your saved trail spots',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: kDeepForest,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [kDeepForest, kDeepTeal],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.wifi_off_rounded,
+                              color: kDeepForest,
+                              size: 24,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'No Connection',
+                              style: TextStyle(
+                                color: kDeepForest,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [kDeepForest, kDeepTeal],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),

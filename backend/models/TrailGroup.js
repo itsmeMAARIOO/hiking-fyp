@@ -25,6 +25,7 @@ const memberSchema = new mongoose.Schema({
 
 const trailSchema = new mongoose.Schema({
   trailName: String,
+  trailDescription: String,
   startTime: {
     type: Date,
     default: () => new Date(new Date().getTime() + 8 * 60 * 60 * 1000),

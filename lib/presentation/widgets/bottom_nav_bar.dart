@@ -212,26 +212,26 @@ class _BottomNavBarState extends State<BottomNavBar>
         builder: (_, child) {
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 6),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              width: isActive ? 70 : 60,
-              height: isActive ? 70 : 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: isActive
-                      ? [kEmergencyMediumRed, kEmergencyLightRed]
-                      : [kFreshRed, kEmergencyMediumRed],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: isActive
+                        ? [kFreshRed, kEmergencyMediumRed]
+                        : [kEmergencyMediumRed, kEmergencyLightRed],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.9),
+                    width: 3,
+                  ),
                 ),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.9),
-                  width: isActive ? 4 : 3,
-                ),
+                child: child,
               ),
-              child: child,
-            ),
           );
         },
         child: Column(

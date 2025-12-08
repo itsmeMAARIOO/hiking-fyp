@@ -67,4 +67,22 @@ class HistoryService {
     }
     throw Exception('Failed to fetch path replay: ${resp.statusCode}');
   }
+
+  static Future<void> deleteGroupHistory(String groupId) async {
+    final resp = await http
+        .delete(Uri.parse('$base/group/history/$groupId'))
+        .timeout(const Duration(seconds: 12));
+    if (resp.statusCode != 200) {
+      throw Exception('Failed to delete group history: ${resp.statusCode}');
+    }
+  }
+
+  static Future<void> deleteSoloHistory(String trailId) async {
+    final resp = await http
+        .delete(Uri.parse('$base/solo/history/$trailId'))
+        .timeout(const Duration(seconds: 12));
+    if (resp.statusCode != 200) {
+      throw Exception('Failed to delete solo history: ${resp.statusCode}');
+    }
+  }
 }

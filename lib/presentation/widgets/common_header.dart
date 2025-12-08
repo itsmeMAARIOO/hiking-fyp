@@ -9,6 +9,9 @@ class CommonHeader extends StatelessWidget {
   final String? lastError;
   final bool showBackgroundGradient;
   final Color backgroundColor;
+  final bool showBack;
+  final VoidCallback? onBack;
+  final List<Widget>? actions;
 
   const CommonHeader({
     super.key,
@@ -16,6 +19,9 @@ class CommonHeader extends StatelessWidget {
     this.lastError,
     this.showBackgroundGradient = true,
     this.backgroundColor = kLightCream,
+    this.showBack = false,
+    this.onBack,
+    this.actions,
   });
 
   @override
@@ -37,6 +43,16 @@ class CommonHeader extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16, statusBarHeight + 8, 16, 8),
           child: Row(
             children: [
+              if (showBack)
+                IconButton(
+                  onPressed: onBack ?? () => Navigator.of(context).pop(),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: kDeepTeal,
+                    size: 20,
+                  ),
+                  splashRadius: 22,
+                ),
               Expanded(
                 child: Text(
                   title,
@@ -49,6 +65,9 @@ class CommonHeader extends StatelessWidget {
                   ),
                 ),
               ),
+              if (actions != null) ...[
+                ...actions!,
+              ],
             ],
           ),
         ),

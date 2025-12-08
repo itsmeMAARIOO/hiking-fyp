@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 
 class MinimizedTrailBubble extends StatelessWidget {
   final String groupName;
   final VoidCallback onTap;
-  const MinimizedTrailBubble({super.key, required this.groupName, required this.onTap});
+  const MinimizedTrailBubble({
+    super.key,
+    required this.groupName,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -13,10 +18,10 @@ class MinimizedTrailBubble extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF16A085), Color(0xFF1ABC9C)],
+              colors: [kDeepForest, kMediumSage],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -32,13 +37,17 @@ class MinimizedTrailBubble extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.directions_run_rounded, color: Colors.white, size: 18),
+              const Icon(
+                Icons.directions_run_rounded,
+                color: kDeepTeal,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Trail Active · $groupName',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),

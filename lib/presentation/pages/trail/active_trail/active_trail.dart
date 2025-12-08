@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:hikingapp/providers/trail_provider.dart';
@@ -13,22 +14,21 @@ import 'package:location/location.dart';
 import 'package:hikingapp/config/routes.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/modern_header.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/tab_selector.dart';
-import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/map/map_tab.dart';
+import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/main/main_tab.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/chat/chat_tab.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/library/library_tab.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/no_group_state.dart';
 import 'package:hikingapp/presentation/styles/app_styles.dart';
+import 'package:hikingapp/presentation/widgets/app_action_dialog.dart';
 
-// UPDATED: Redesigned with tabbed interface for Map and Chat/Library features
-
-class TrailGroupPage extends StatefulWidget {
-  const TrailGroupPage({super.key});
+class ActiveTrailPage extends StatefulWidget {
+  const ActiveTrailPage({super.key});
 
   @override
-  State<TrailGroupPage> createState() => _TrailGroupPageState();
+  State<ActiveTrailPage> createState() => _ActiveTrailPageState();
 }
 
-class _TrailGroupPageState extends State<TrailGroupPage>
+class _ActiveTrailPageState extends State<ActiveTrailPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   bool _isTracking = true;
@@ -36,6 +36,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
   late GroupProvider _groupProvider;
   bool _isSolo = false;
   String _soloTrailName = '';
+  String _soloTrailDescription = '';
 
   Duration _elapsedTime = Duration.zero;
   double _totalDistance = 0.0;
@@ -74,6 +75,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
         (args['isSolo'] == true) ||
         ((args['trailName'] ?? '').toString().isNotEmpty);
     _soloTrailName = (args['trailName'] ?? '').toString();
+    _soloTrailDescription = (args['trailDescription'] ?? '').toString();
     _groupProvider = Provider.of<GroupProvider>(context, listen: false);
     _pulseController = AnimationController(
       vsync: this,
@@ -86,15 +88,19 @@ class _TrailGroupPageState extends State<TrailGroupPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_isSolo) {
         final mapProvider = Provider.of<MapProvider>(context, listen: false);
-        final wasTracking = mapProvider.soloWasTracking;
-        setState(() => _isTracking = wasTracking);
-        if (wasTracking) {
+        final isNewSession = mapProvider.soloElapsedSeconds == 0;
+        final shouldStart = isNewSession || mapProvider.soloWasTracking;
+        setState(() => _isTracking = shouldStart);
+        if (shouldStart) {
           _startTimer();
           _groupProvider.startLocationUpdates(
             forSolo: true,
             userId: _currentUserId,
             userName: _currentUserName,
             trailName: _soloTrailName,
+            trailDescription: _soloTrailDescription.isNotEmpty
+                ? _soloTrailDescription
+                : null,
           );
         }
       } else {
@@ -445,7 +451,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
           // Tabbed Content Area
           Expanded(
             child: _selectedTab == 0
-                ? MapTab(
+                ? MainTab(
                     otherMembers: otherMembers,
                     focusLat: _focusLat,
                     focusLon: _focusLon,
@@ -463,7 +469,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
                         _focusLon = lon;
                       });
                     },
-                    elapsedTime: Duration(seconds: provider.elapsedSeconds),
+                    elapsedTime: _elapsedTime,
                     totalDistance: _totalDistance,
                     currentSpeed: _currentSpeed,
                     isTracking: _isTracking,
@@ -502,42 +508,7 @@ class _TrailGroupPageState extends State<TrailGroupPage>
                     },
                     onEndTrail: () {
                       if (_isSolo) {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) {
-                            return AlertDialog(
-                              title: const Text('End Solo Trail'),
-                              content: const Text(
-                                'Are you sure you want to end this trail?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(ctx).pop();
-                                    final mp = Provider.of<MapProvider>(
-                                      context,
-                                      listen: false,
-                                    );
-                                    mp.clearSoloTrailStats();
-                                    _groupProvider.completeSoloTrail(
-                                      userId: _currentUserId,
-                                      trailName: _soloTrailName,
-                                      endTime: DateTime.now(),
-                                    );
-                                    _groupProvider.stopLocationUpdates();
-                                    _stopTimer();
-                                    Get.offAllNamed(AppRoutes.dashboard);
-                                  },
-                                  child: const Text('End'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
+                        _showSoloEndDialog(context);
                       } else {
                         TrailServices.showEndTrailDialog(
                           context: context,
@@ -572,6 +543,35 @@ class _TrailGroupPageState extends State<TrailGroupPage>
         ],
       ),
     );
+  }
+
+  Future<void> _showSoloEndDialog(BuildContext context) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AppActionDialog(
+        title: 'End Solo Trail',
+        icon: Icons.flag_rounded,
+        message: 'Are you sure you want to end this trail?',
+        cancelText: 'CANCEL',
+        confirmText: 'END',
+        confirmColor: const Color(0xFFE74C3C),
+        headerGradient: const [Color(0xFFc0392b), Color(0xFFe74c3c)],
+        cancelResult: 'cancel',
+        confirmResult: 'confirm',
+      ),
+    );
+    if (result == 'confirm') {
+      final mp = Provider.of<MapProvider>(context, listen: false);
+      mp.clearSoloTrailStats();
+      _groupProvider.completeSoloTrail(
+        userId: _currentUserId,
+        trailName: _soloTrailName,
+        endTime: DateTime.now(),
+      );
+      _groupProvider.stopLocationUpdates();
+      _stopTimer();
+      Get.offAllNamed(AppRoutes.dashboard);
+    }
   }
 
   void _onMinimize(GroupProvider provider) {
@@ -620,15 +620,11 @@ class _MinimizeButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: kDeepTeal.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+            border: Border.all(color: kDeepTeal.withOpacity(0.3), width: 1),
           ),
-          child: const Icon(
-            Icons.circle_outlined,
-            color: Colors.white,
-            size: 20,
-          ),
+          child: const Icon(Icons.circle_outlined, color: kDeepTeal, size: 20),
         ),
       ),
     );

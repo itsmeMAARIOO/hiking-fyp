@@ -4,6 +4,7 @@ import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:get/get.dart';
 import 'package:hikingapp/services/fall_detection_service.dart';
+import 'package:hikingapp/config/routes.dart';
 import 'package:hikingapp/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +18,7 @@ import 'package:hikingapp/config/api_config.dart';
 class EmergencyProvider extends ChangeNotifier {
   bool _sosActive = false;
   bool _fallDetectionEnabled = true;
+  FallSensitivity _fallSensitivity = FallSensitivity.medium;
   bool _emergencyMode = false;
   bool _isSendingLocation = false;
 
@@ -32,6 +34,7 @@ class EmergencyProvider extends ChangeNotifier {
 
   bool get sosActive => _sosActive;
   bool get fallDetectionEnabled => _fallDetectionEnabled;
+  FallSensitivity get fallSensitivity => _fallSensitivity;
   bool get emergencyMode => _emergencyMode;
   bool get isCountingDown => _isCountingDown;
   int get countdownRemaining => _countdownRemaining;
@@ -84,11 +87,16 @@ class EmergencyProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFallSensitivity(FallSensitivity s) {
+    _fallSensitivity = s;
+    if (_fallService != null) {
+      _fallService!.setSensitivity(s);
+    }
+    notifyListeners();
+  }
+
   void showFirstAid(BuildContext context) {
-    SnackbarHelper.showSuccess(
-      'Info',
-      'Opening offline first aid guide...\n• Basic wound care\n• Hypothermia\n• Snake bite\n• Emergency signaling',
-    );
+    Get.toNamed(AppRoutes.firstAid);
   }
 
   Future<void> callEmergency(BuildContext context) async {
@@ -99,8 +107,6 @@ class EmergencyProvider extends ChangeNotifier {
       SnackbarHelper.showError('Error', 'Unable to open dialer');
     }
   }
-
-  
 
   Future<void> shareLocation(BuildContext context) async {
     final profile = Provider.of<ProfileProvider>(context, listen: false);
@@ -115,14 +121,19 @@ class EmergencyProvider extends ChangeNotifier {
         .where((c) => (c['share'] ?? 'false') == 'true')
         .toList();
     if (contacts.isEmpty) {
-      SnackbarHelper.showError('Error', 'No contacts enabled for location sharing');
+      SnackbarHelper.showError(
+        'Error',
+        'No contacts enabled for location sharing',
+      );
       return;
     }
 
     LocationPermission perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
       perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
         SnackbarHelper.showError('Error', 'Location permission required');
         return;
       }
@@ -130,7 +141,9 @@ class EmergencyProvider extends ChangeNotifier {
 
     Position pos;
     try {
-      pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
     } catch (_) {
       SnackbarHelper.showError('Error', 'Unable to get current location');
       return;
@@ -140,7 +153,9 @@ class EmergencyProvider extends ChangeNotifier {
     final startUrl = Uri.parse('$base/emergency/share/start');
     final payload = {
       'userId': userId,
-      'contacts': contacts.map((c) => {'name': c['name'], 'email': c['email']}).toList(),
+      'contacts': contacts
+          .map((c) => {'name': c['name'], 'email': c['email']})
+          .toList(),
       'latitude': pos.latitude,
       'longitude': pos.longitude,
       'timestamp': DateTime.now().toIso8601String(),
@@ -158,9 +173,14 @@ class EmergencyProvider extends ChangeNotifier {
         final emailSent = data['emailSent'] == true;
         final emailError = (data['emailError'] ?? '') as String;
         if (emailSent) {
-          SnackbarHelper.showSuccess('Location Sharing', 'Email sent to selected contacts');
+          SnackbarHelper.showSuccess(
+            'Location Sharing',
+            'Email sent to selected contacts',
+          );
         } else {
-          final msg = emailError.isNotEmpty ? 'Email not sent: $emailError' : 'Email not sent';
+          final msg = emailError.isNotEmpty
+              ? 'Email not sent: $emailError'
+              : 'Email not sent';
           SnackbarHelper.showError('Location Sharing', msg);
         }
       } else {
@@ -173,8 +193,187 @@ class EmergencyProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
 
+  Future<void> shareEmergencyLocation(BuildContext context) async {
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userId = auth.userId;
+    if (userId == null) {
+      SnackbarHelper.showError('Error', 'User not logged in');
+      return;
+    }
+
+    final contacts = profile.emergencyContacts
+        .where((c) => (c['share'] ?? 'false') == 'true')
+        .toList();
+    if (contacts.isEmpty) {
+      SnackbarHelper.showError(
+        'Emergency Location',
+        'No contacts enabled for location sharing',
+      );
+      return;
+    }
+
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
+      perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        SnackbarHelper.showError('Error', 'Location permission required');
+        return;
+      }
+    }
+
+    Position pos;
+    try {
+      pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (_) {
+      SnackbarHelper.showError('Error', 'Unable to get current location');
+      return;
+    }
+
+    final base = ApiConfig.baseUrl;
+    final startUrl = Uri.parse('$base/emergency/share/start');
+    final payload = {
+      'userId': userId,
+      'contacts': contacts
+          .map((c) => {'name': c['name'], 'email': c['email']})
+          .toList(),
+      'latitude': pos.latitude,
+      'longitude': pos.longitude,
+      'timestamp': DateTime.now().toIso8601String(),
+      'emergency': true,
+      'subject': 'EMERGENCY LOCATION ALERT',
+      'theme': 'red',
+    };
+    try {
+      _isSendingLocation = true;
+      notifyListeners();
+      final resp = await http.post(
+        startUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final emailSent = data['emailSent'] == true;
+        final emailError = (data['emailError'] ?? '') as String;
+        if (emailSent) {
+          SnackbarHelper.showSuccess(
+            'Emergency Location',
+            'Sent to selected contacts',
+          );
+        } else {
+          final msg = emailError.isNotEmpty
+              ? 'Email not sent: $emailError'
+              : 'Email not sent';
+          SnackbarHelper.showError('Emergency Location', msg);
+        }
+      } else {
+        SnackbarHelper.showError('Error', 'Failed to start sharing');
+      }
+    } catch (_) {
+      SnackbarHelper.showError('Error', 'Network error starting sharing');
+    } finally {
+      _isSendingLocation = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> shareSoloStartLocation(
+    BuildContext context, {
+    String? trailName,
+    DateTime? expectedEndTime,
+  }) async {
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userId = auth.userId;
+    if (userId == null) {
+      SnackbarHelper.showError('Error', 'User not logged in');
+      return;
+    }
+
+    final contacts = profile.emergencyContacts
+        .where((c) => (c['share'] ?? 'false') == 'true')
+        .toList();
+    if (contacts.isEmpty) {
+      SnackbarHelper.showError(
+        'Solo Start',
+        'No contacts enabled for notifications',
+      );
+      return;
+    }
+
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
+      perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        SnackbarHelper.showError('Error', 'Location permission required');
+        return;
+      }
+    }
+
+    Position pos;
+    try {
+      pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (_) {
+      SnackbarHelper.showError('Error', 'Unable to get current location');
+      return;
+    }
+
+    final base = ApiConfig.baseUrl;
+    final startUrl = Uri.parse('$base/solo/notify/start');
+    final payload = {
+      'userId': userId,
+      'contacts': contacts
+          .map((c) => {'name': c['name'], 'email': c['email']})
+          .toList(),
+      'latitude': pos.latitude,
+      'longitude': pos.longitude,
+      'timestamp': DateTime.now().toIso8601String(),
+      'trailName': trailName,
+      'expectedEndTime': expectedEndTime?.toIso8601String(),
+    };
+    try {
+      _isSendingLocation = true;
+      notifyListeners();
+      final resp = await http.post(
+        startUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final emailSent = data['emailSent'] == true;
+        final emailError = (data['emailError'] ?? '') as String;
+        if (emailSent) {
+          SnackbarHelper.showSuccess(
+            'Solo Hike',
+            'Notification sent to selected contacts',
+          );
+        } else {
+          final msg = emailError.isNotEmpty
+              ? 'Email not sent: $emailError'
+              : 'Email not sent';
+          SnackbarHelper.showError('Solo Hike', msg);
+        }
+      } else {
+        SnackbarHelper.showError('Error', 'Failed to send notification');
+      }
+    } catch (_) {
+      SnackbarHelper.showError('Error', 'Network error sending notification');
+    } finally {
+      _isSendingLocation = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> _startAlarm() async {
     _sosActive = true;
@@ -190,6 +389,10 @@ class EmergencyProvider extends ChangeNotifier {
         title: 'Emergency Triggered',
         body: 'Tap to open Emergency page',
       );
+      final ctx = Get.context;
+      if (ctx != null) {
+        await shareEmergencyLocation(ctx);
+      }
     } catch (_) {
       SnackbarHelper.showError('Alarm', 'Unable to play alarm sound');
     }
@@ -213,6 +416,7 @@ class EmergencyProvider extends ChangeNotifier {
     _fallService ??= FallDetectionService();
     _fallService!.enableDebug = true;
     await _fallService!.init();
+    await _fallService!.setSensitivity(_fallSensitivity);
     _fallSub?.cancel();
     _fallSub = _fallService!.fallStream.listen((isFalling) {
       if (!_fallDetectionEnabled) return;

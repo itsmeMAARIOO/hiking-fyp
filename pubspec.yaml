@@ -60,6 +60,8 @@ dependencies:
   socket_io_client: ^3.1.2
   google_maps_flutter: ^2.14.0
   google_fonts: ^6.3.2
+  background_fetch: ^1.2.0
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -71,7 +73,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  image_path: "assets/images/trailguard_white.png"
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

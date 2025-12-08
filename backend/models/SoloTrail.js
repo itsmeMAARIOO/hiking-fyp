@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const soloTrailSchema = new mongoose.Schema(
   {
     trailName: { type: String, required: true },
+    trailDescription: { type: String },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -13,6 +14,14 @@ const soloTrailSchema = new mongoose.Schema(
       default: () => new Date(new Date().getTime() + 8 * 60 * 60 * 1000),
     },
     endTime: Date,
+    expectedEndTime: Date,
+    overdueNotified: { type: Boolean, default: false },
+    notifiedContacts: [
+      {
+        name: String,
+        email: String,
+      },
+    ],
     // latest live location info for solo tracking
     latestLatitude: Number,
     latestLongitude: Number,

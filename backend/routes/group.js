@@ -38,10 +38,10 @@ router.post("/nearby", async (req, res) => {
       return res.status(400).json({ error: "Missing coordinates" });
     }
 
-    // ⏰ 5-minute window
+    // within 5-minute
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
-    // 🧭 Fetch check-ins within the last 5 minutes & populate user info
+    // Fetch check-ins within the last 5 minutes
     const recentCheckins = await Checkin.find({
       checkinTime: { $gte: fiveMinutesAgo },
     }).populate("userId", "name profileImage"); // ✅ populate name + optional profileImage
@@ -137,6 +137,35 @@ router.get("/history/:userId", async (req, res) => {
   }
 });
 
+// 🗑️ Remove a completed group hike from history by groupId
+router.delete("/history/:groupId", async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    if (!groupId) {
+      return res.status(400).json({ error: "Missing groupId" });
+    }
+
+    const group = await TrailGroup.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    if (!group.activeTrail || group.activeTrail.status !== "completed") {
+      return res
+        .status(400)
+        .json({ error: "Only completed trails can be removed from history" });
+    }
+
+    await TrailGroup.deleteOne({ _id: groupId });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error deleting group history:", err);
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+});
+
 router.get("/path/:groupId", async (req, res) => {
   try {
     const { groupId } = req.params;
@@ -198,7 +227,7 @@ router.get("/path/:groupId", async (req, res) => {
 // ✅ Create new trail group with invited members
 router.post("/create-group", async (req, res) => {
   try {
-    const { groupName, createdBy, creatorName, trailName, invitedMembers } =
+    const { groupName, createdBy, creatorName, trailName, trailDescription, invitedMembers } =
       req.body;
 
     if (!groupName || !createdBy) {
@@ -235,6 +264,7 @@ router.post("/create-group", async (req, res) => {
       members,
       activeTrail: {
         trailName: trailName || "Unnamed Trail",
+        trailDescription: trailDescription || "",
         status: "active",
       },
     });

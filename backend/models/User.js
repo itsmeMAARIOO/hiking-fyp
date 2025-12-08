@@ -22,6 +22,17 @@ const userSchema = new mongoose.Schema({
     autoCheckIn: { type: Boolean, default: false },
     weatherAlerts: { type: Boolean, default: false },
   },
+  dateOfBirth: { type: Date },
+  gender: { type: String, enum: ["Male", "Female", "Other"] },
+  weightKg: { type: Number },
+  heightCm: { type: Number },
+  bloodType: {
+    type: String,
+    enum: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
+  },
+  allergies: { type: [String], default: [] },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date },
 });
 
 export default mongoose.model("User", userSchema);

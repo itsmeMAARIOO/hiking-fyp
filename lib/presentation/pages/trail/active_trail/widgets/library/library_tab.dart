@@ -235,9 +235,7 @@ class _LibraryTabState extends State<LibraryTab> {
                   child: _loading
                       ? const Center(child: CircularProgressIndicator())
                       : _images.isEmpty
-                      ? const Center(
-                          child: Text('No photos yet. Be the first to share!'),
-                        )
+                      ? _LibraryEmptyState(onCapture: _takePhotoAndUpload)
                       : GridView.builder(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
@@ -320,6 +318,106 @@ class _TopRightIcon extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
         ),
         child: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+  }
+}
+
+class _LibraryEmptyState extends StatefulWidget {
+  final VoidCallback onCapture;
+  const _LibraryEmptyState({required this.onCapture});
+
+  @override
+  State<_LibraryEmptyState> createState() => _LibraryEmptyStateState();
+}
+
+class _LibraryEmptyStateState extends State<_LibraryEmptyState>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(
+      begin: 0.85,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (_, __) => SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: Transform.scale(
+                    scale: _pulse.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: kMediumSage.withOpacity(0.15),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: kMediumSage,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: kMediumSage.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.camera_alt_rounded,
+                  color: Colors.white,
+                  size: 36,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No photos yet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: kDeepTeal,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Share your first trail memory',
+            style: TextStyle(fontSize: 13, color: kDeepTeal.withOpacity(0.6)),
+          ),
+          const SizedBox(height: 12),
+        ],
       ),
     );
   }

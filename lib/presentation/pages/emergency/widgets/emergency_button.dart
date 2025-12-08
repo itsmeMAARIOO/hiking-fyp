@@ -3,6 +3,7 @@ import 'package:hikingapp/providers/emergency_provider.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import 'package:hikingapp/presentation/styles/colors.dart';
+import 'package:hikingapp/services/fall_detection_service.dart';
 
 class EmergencyButton extends StatefulWidget {
   const EmergencyButton({super.key});
@@ -192,53 +193,152 @@ class _EmergencyButtonState extends State<EmergencyButton>
           },
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 6),
 
-        // Status text with animated container
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            color: emergencyProvider.sosActive
-                ? Colors.red.withOpacity(0.1)
-                : kSoftMint.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: emergencyProvider.sosActive
-                  ? kEmergencyDarkRed
-                  : kDeepTeal,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                emergencyProvider.sosActive
-                    ? Icons.emergency
-                    : Icons.touch_app_rounded,
-                size: 18,
-                color: emergencyProvider.sosActive
-                    ? Colors.red.shade700
-                    : kDeepTeal,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  emergencyProvider.sosActive
-                      ? 'Emergency alert active - Tap to cancel'
-                      : 'Tap to trigger emergency alert',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: emergencyProvider.sosActive
-                        ? kEmergencyDarkRed
-                        : kDeepTeal,
-                    fontWeight: FontWeight.w600,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.sensors_rounded, size: 18, color: kDeepTeal),
+                  SizedBox(width: 8),
+                  Text(
+                    'Sensitivity',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: kDeepTeal,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ThemeRadio(
+                    label: 'Low',
+                    selected:
+                        emergencyProvider.fallSensitivity ==
+                        FallSensitivity.low,
+                    onTap: () => emergencyProvider.setFallSensitivity(
+                      FallSensitivity.low,
+                    ),
+                  ),
+                  const SizedBox(width: 26),
+                  _ThemeRadio(
+                    label: 'Medium',
+                    selected:
+                        emergencyProvider.fallSensitivity ==
+                        FallSensitivity.medium,
+                    onTap: () => emergencyProvider.setFallSensitivity(
+                      FallSensitivity.medium,
+                    ),
+                  ),
+                  const SizedBox(width: 26),
+                  _ThemeRadio(
+                    label: 'High',
+                    selected:
+                        emergencyProvider.fallSensitivity ==
+                        FallSensitivity.high,
+                    onTap: () => emergencyProvider.setFallSensitivity(
+                      FallSensitivity.high,
+                    ),
+                  ),
+                ],
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ThemeRadio extends StatefulWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemeRadio({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  State<_ThemeRadio> createState() => _ThemeRadioState();
+}
+
+class _ThemeRadioState extends State<_ThemeRadio>
+    with SingleTickerProviderStateMixin {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = kDeepTeal;
+    final accent = kMediumSage;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: _pressed ? 1.15 : 1.0,
+            duration: const Duration(milliseconds: 150),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.35),
+                        blurRadius: 10,
+                        offset: const Offset(2, 5),
+                      ),
+                    ],
+                    border: widget.selected
+                        ? Border.all(color: accent, width: 2)
+                        : null,
+                  ),
+                ),
+                AnimatedRotation(
+                  duration: const Duration(milliseconds: 300),
+                  turns: widget.selected ? 1.0 : 0.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: widget.selected ? accent : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          widget.label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: kDeepTeal,
           ),
         ),
       ],

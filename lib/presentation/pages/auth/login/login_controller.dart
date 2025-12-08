@@ -49,7 +49,7 @@ class LoginController extends GetxController {
       isLoading.value = true;
 
       // 🔥 Call backend API
-      final response = await ApiService.login(trimmedEmail, trimmedPassword);
+      final response = await AuthService.login(trimmedEmail, trimmedPassword);
 
       if (response.containsKey("id") &&
           response.containsKey("email") &&

@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hikingapp/config/images/image_locations.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
-import 'package:hikingapp/utils/loading_helper.dart';
 import 'splash_controller.dart';
 
 class SplashPage extends StatefulWidget {
@@ -13,178 +14,226 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _textController;
+  late AnimationController _mainController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _logoController = AnimationController(
+    _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..forward();
+      duration: const Duration(milliseconds: 2000),
+    );
 
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
+    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _mainController, curve: Curves.easeOutCubic),
     );
-    Future.delayed(
-      const Duration(milliseconds: 400),
-      () => _textController.forward(),
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _mainController, curve: const Interval(0.0, 0.6)),
     );
+
+    _mainController.forward();
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _textController.dispose();
+    _mainController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Initialize Controller
     final SplashController controller = Get.put(SplashController());
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Branded gradient background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [kDeepTeal, kDeepForest],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-
-          // Soft decorative blobs for depth
-          Positioned(
-            top: -80,
-            left: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: kSoftMint.withOpacity(0.15),
-                boxShadow: [
-                  BoxShadow(
-                    color: kSoftMint.withOpacity(0.25),
-                    blurRadius: 80,
-                    spreadRadius: 10,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -60,
-            right: -40,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: kMediumSage.withOpacity(0.15),
-                boxShadow: [
-                  BoxShadow(
-                    color: kMediumSage.withOpacity(0.25),
-                    blurRadius: 80,
-                    spreadRadius: 10,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Center content
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ScaleTransition(
-                  scale: Tween<double>(begin: 0.3, end: 1.0).animate(
-                    CurvedAnimation(
-                      parent: _logoController,
-                      curve: Curves.elasticOut,
-                    ),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color.fromARGB(255, 18, 66, 20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: kDeepTeal.withOpacity(0.4),
-                          blurRadius: 36,
-                          spreadRadius: 8,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      ImageLocation.appLogo,
-                      width: 140,
-                      height: 140,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FadeTransition(
-                  opacity: _textController,
-                  child: SlideTransition(
-                    position:
-                        Tween<Offset>(
-                          begin: const Offset(0, 0.3),
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: _textController,
-                            curve: Curves.easeOut,
-                          ),
-                        ),
-                    child: Column(
-                      children: const [
-                        Text(
-                          "TrailGuard",
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                            shadows: [
-                              Shadow(
-                                offset: Offset(2, 3),
-                                blurRadius: 8,
-                                color: Colors.black38,
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          "Your adventure companion",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
-                            color: kSoftMint,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // LoadingHelper(imagePath: ImageLocation.loading, size: 50),
-              ],
-            ),
-          ),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
       ),
+      child: Scaffold(
+        backgroundColor: kDeepForest,
+        body: Stack(
+          children: [
+            // 1. BACKGROUND: Dark Nature Gradient
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1A2C2C), // Darker Teal
+                      kDeepForest,
+                      Color(0xFF0D1F1F), // Almost Black
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 2. AMBIENT GLOW (Breathing Effect)
+            Center(child: _PulsingGlow(color: kMediumSage.withOpacity(0.12))),
+
+            // 3. MAIN CONTENT: Logo & Text
+            Center(
+              child: AnimatedBuilder(
+                animation: _mainController,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _fadeAnimation.value,
+                    child: Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // --- LOGO CONTAINER ---
+                          Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              // Glassmorphic effect
+                              color: Colors.white.withOpacity(0.03),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: kDeepTeal.withOpacity(0.2),
+                                  blurRadius: 40,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: Image.asset(
+                              ImageLocation.appLogo,
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // --- TITLE TEXT ---
+                          const Text(
+                            "TRAILGUARD",
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 5.0, // Cinematic wide spacing
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // --- SUBTITLE TAG ---
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: kMediumSage.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: kMediumSage.withOpacity(0.3),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: const Text(
+                              "ADVENTURE SAFELY",
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: kSoftMint,
+                                letterSpacing: 2.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // 4. BOTTOM LOADER (Subtle)
+            Positioned(
+              bottom: 60,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: kMediumSage,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- HELPER: Breathing Glow Animation ---
+class _PulsingGlow extends StatefulWidget {
+  final Color color;
+  const _PulsingGlow({required this.color});
+
+  @override
+  State<_PulsingGlow> createState() => _PulsingGlowState();
+}
+
+class _PulsingGlowState extends State<_PulsingGlow>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: 300 + (_controller.value * 60),
+          height: 300 + (_controller.value * 60),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [widget.color, widget.color.withOpacity(0)],
+              stops: const [0.0, 0.7],
+            ),
+          ),
+        );
+      },
     );
   }
 }

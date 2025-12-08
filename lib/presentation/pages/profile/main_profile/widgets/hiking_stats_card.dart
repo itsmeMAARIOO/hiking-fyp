@@ -13,15 +13,21 @@ class HikingStatsCard extends StatefulWidget {
   State<HikingStatsCard> createState() => _HikingStatsCardState();
 }
 
-class _HikingStatsCardState extends State<HikingStatsCard> {
+class _HikingStatsCardState extends State<HikingStatsCard>
+    with SingleTickerProviderStateMixin {
   late final ProfileController _controller;
-  int? _selectedYearLocal;
+  String _selectedPeriodLocal = 'M';
+  late final AnimationController _chartController;
+  String _phase = 'idle';
 
   @override
   void initState() {
     super.initState();
     _controller = ProfileController(context);
-
+    _chartController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.userId != null) {
@@ -32,113 +38,156 @@ class _HikingStatsCardState extends State<HikingStatsCard> {
   }
 
   @override
+  void dispose() {
+    _chartController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ProfileProvider>(context);
-    final totalHikes = provider.soloTotalFiltered + provider.groupTotalFiltered;
+
+    // --- Crisp Blue/Pink Palette ---
+    const Color soloColor = Color.fromARGB(255, 235, 162, 90);
+    const Color groupColor = kMediumSage;
 
     return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: kDeepTeal.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: kMediumSage.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: kDeepForest.withOpacity(0.2), width: 1),
       ),
+      // Removed the Stack and the blurred "glow" container.
+      // Now it's just a clean Padding widget.
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Row
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
-                  child: Text(
-                    'Overview',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: kDeepTeal,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: kMediumSage.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      // Use the new solo color for the icon accent
+                      child: const Icon(
+                        Icons.show_chart_rounded,
+                        color: kDeepTeal,
+                        size: 20,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Hiking Activity",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: kDeepTeal.withOpacity(0.6),
+                          ),
+                        ),
+                        Text(
+                          "Your progress over time",
+                          style: TextStyle(fontSize: 12, color: kDeepForest),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                _YearScrollBox(
-                  years: provider.availableYears,
-                  selectedYear:
-                      provider.selectedYear ??
-                      _selectedYearLocal ??
-                      DateTime.now().year,
-                  onSelected: (y) async {
-                    _selectedYearLocal = y;
-                    provider.setHikingStats(
-                      solo: provider.soloStats,
-                      group: provider.groupStats,
-                      soloTotal: provider.soloTotalFiltered,
-                      groupTotal: provider.groupTotalFiltered,
-                      years: provider.availableYears,
-                      year: y,
+
+                _DarkYearSelector(
+                  period: _selectedPeriodLocal,
+                  onToggle: (p) async {
+                    final next = _nextPeriod(p);
+                    setState(() {
+                      _selectedPeriodLocal = next;
+                      _phase = 'loading';
+                    });
+                    final mapped = _mapPeriod(next);
+                    _chartController.duration = const Duration(
+                      milliseconds: 900,
                     );
-                    await _controller.loadHikingStats('Year');
+                    _chartController.repeat();
+                    await _controller.loadHikingStats(mapped);
+                    _chartController.stop();
+                    setState(() {
+                      _phase = 'toChart';
+                    });
+                    _chartController.duration = const Duration(
+                      milliseconds: 700,
+                    );
+                    await _chartController.forward(from: 0);
+                    setState(() {
+                      _phase = 'idle';
+                    });
                   },
                 ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 18),
+            Divider(height: 1, color: kDeepForest.withOpacity(0.4)),
+            const SizedBox(height: 12),
 
+            // Legend / Stats
             Row(
-              children: const [
-                _LegendItem(label: 'Solo', color: kMediumSage),
-                SizedBox(width: 12),
-                _LegendItem(label: 'Group', color: kDeepForest),
+              children: [
+                Expanded(
+                  child: _StatColumn(
+                    label: "Solo Hikes",
+                    accentColor: soloColor,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: kDeepForest.withOpacity(0.4),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 24),
+                    child: _StatColumn(
+                      label: "Group Hikes",
+                      accentColor: groupColor,
+                    ),
+                  ),
+                ),
               ],
             ),
 
-            const SizedBox(height: 4),
-
-            // Divider like in reference
-            Divider(
-              color: kDeepTeal.withOpacity(0.1),
-              height: 20,
-              thickness: 1,
-            ),
-
-            const SizedBox(height: 4),
+            const SizedBox(height: 24),
 
             // Chart
             SizedBox(
-              height: 200,
+              height: 140,
+              width: double.infinity,
               child: provider.soloStats.isEmpty && provider.groupStats.isEmpty
-                  ? const _EmptyState()
+                  ? Center(
+                      child: Text(
+                        "No data available",
+                        style: TextStyle(color: kDeepForest),
+                      ),
+                    )
                   : HikingStatsLineChart(
                       soloPoints: provider.soloStats,
                       groupPoints: provider.groupStats,
+                      colorSolo: soloColor, // New Cyan
+                      colorGroup: groupColor, // New Amber
+                      phase: _phase,
+                      t: _chartController.value,
+                      period: _mapPeriod(_selectedPeriodLocal),
                     ),
-            ),
-
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _MiniStat(
-                  value: provider.soloTotalFiltered,
-                  label: 'Total Solo',
-                  color: kMediumSage,
-                ),
-                _MiniStat(
-                  value: provider.groupTotalFiltered,
-                  label: 'Total Group',
-                  color: kDeepForest,
-                ),
-                _MiniStat(
-                  value: totalHikes,
-                  label: 'Combined',
-                  color: kDeepTeal,
-                ),
-              ],
             ),
           ],
         ),
@@ -147,152 +196,105 @@ class _HikingStatsCardState extends State<HikingStatsCard> {
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  final int value;
-  final String label;
-  final Color color;
+// --- HELPERS ---
 
-  const _MiniStat({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
+class _StatColumn extends StatelessWidget {
+  final String label;
+  final Color accentColor;
+
+  const _StatColumn({required this.label, required this.accentColor});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '$value',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: color,
-            height: 1.1,
-          ),
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: accentColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: kDeepTeal,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: kDeepTeal.withOpacity(0.6),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const SizedBox(height: 6),
       ],
     );
   }
 }
 
-class _LegendItem extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _LegendItem({required this.label, required this.color});
+class _DarkYearSelector extends StatelessWidget {
+  final String period; // 'M', 'Y', 'W'
+  final ValueChanged<String> onToggle;
+
+  const _DarkYearSelector({required this.period, required this.onToggle});
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    return InkWell(
+      onTap: () => onToggle(period),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kDeepTeal.withOpacity(0.4)),
         ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(color: color, fontWeight: FontWeight.w600),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              period,
+              style: const TextStyle(
+                color: kDeepForest,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.autorenew, size: 16, color: kDeepForest),
+          ],
         ),
-      ],
-    );
-  }
-}
-
-class _FilterDropdown extends StatelessWidget {
-  final String value;
-  final ValueChanged<String?> onChanged;
-  const _FilterDropdown({required this.value, required this.onChanged});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: kWarmWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kSoftMint.withOpacity(0.3)),
-      ),
-      child: DropdownButton<String>(
-        value: value,
-        onChanged: onChanged,
-        underline: const SizedBox(),
-        items: const [
-          DropdownMenuItem(value: 'Month', child: Text('Month')),
-          DropdownMenuItem(value: 'Year', child: Text('Year')),
-          DropdownMenuItem(value: 'All time', child: Text('All time')),
-        ],
       ),
     );
   }
 }
 
-class _YearScrollBox extends StatelessWidget {
-  final List<int> years;
-  final int selectedYear;
-  final ValueChanged<int> onSelected;
-  const _YearScrollBox({
-    required this.years,
-    required this.selectedYear,
-    required this.onSelected,
-  });
-  @override
-  Widget build(BuildContext context) {
-    final displayYears = years.isEmpty
-        ? List.generate(6, (i) => DateTime.now().year - i)
-        : years;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: kWarmWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kSoftMint.withOpacity(0.3)),
-      ),
-      child: DropdownButton<int>(
-        value: selectedYear,
-        onChanged: (y) {
-          if (y != null) onSelected(y);
-        },
-        underline: const SizedBox(),
-        items: displayYears
-            .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-            .toList(),
-      ),
-    );
+String _nextPeriod(String current) {
+  switch (current) {
+    case 'M':
+      return 'Y';
+    case 'Y':
+      return 'W';
+    case 'W':
+    default:
+      return 'M';
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.insights_rounded,
-            color: kDeepTeal.withOpacity(0.3),
-            size: 32,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'No data this week',
-            style: TextStyle(color: kDeepTeal.withOpacity(0.5), fontSize: 12),
-          ),
-        ],
-      ),
-    );
+String _mapPeriod(String p) {
+  switch (p) {
+    case 'M':
+      return 'Month';
+    case 'Y':
+      return 'Year';
+    case 'W':
+      return 'Week';
+    default:
+      return 'Month';
   }
 }

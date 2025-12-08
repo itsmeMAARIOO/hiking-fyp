@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/services/history_service.dart';
+import 'package:provider/provider.dart';
+import 'package:hikingapp/providers/dashboard_provider.dart';
 
 class SoloTrailDetailsPage extends StatefulWidget {
   const SoloTrailDetailsPage({super.key});
@@ -15,7 +16,6 @@ class SoloTrailDetailsPage extends StatefulWidget {
 class _SoloTrailDetailsPageState extends State<SoloTrailDetailsPage> {
   Map<String, dynamic>? _trail;
   bool _loading = true;
-  String? _error;
 
   @override
   void initState() {
@@ -29,38 +29,114 @@ class _SoloTrailDetailsPageState extends State<SoloTrailDetailsPage> {
     if (trailId.isEmpty) {
       setState(() {
         _loading = false;
-        _error = 'Missing trailId';
       });
       return;
     }
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       _trail = await HistoryService.fetchSoloTrail(trailId);
-    } catch (e) {
-      _error = e.toString();
-    }
+    } catch (e) {}
     setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = (_trail?['trailName'] ?? 'Solo Trail').toString();
+    (_trail?['trailName'] ?? 'Solo Trail').toString();
+    final isOnline = Provider.of<DashboardProvider>(context).isOnline;
     return Scaffold(
       backgroundColor: kLightCream,
       body: SafeArea(
         child: Column(
           children: [
-            CommonHeader(title: title, lastError: _error),
             Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: _buildDetails(),
-                    ),
+              child: !isOnline
+                  ? Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        margin: const EdgeInsets.symmetric(horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kDeepTeal.withOpacity(0.08),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: kDeepForest.withOpacity(0.08),
+                                    blurRadius: 25,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(
+                                    Icons.wifi_off_rounded,
+                                    color: kDeepForest,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'No Connection',
+                                    style: TextStyle(
+                                      color: kDeepForest,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                'Please try again later.',
+                                style: TextStyle(
+                                  color: kDeepForest,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : (_loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: _buildDetails(),
+                          )),
             ),
           ],
         ),
@@ -78,16 +154,20 @@ class _SoloTrailDetailsPageState extends State<SoloTrailDetailsPage> {
       if (endRaw is String) end = DateTime.parse(endRaw);
     } catch (_) {}
     final startStr = start != null
-        ? DateFormat('d MMM yyyy, HH:mm').format(start!.toLocal())
+        ? DateFormat('d MMM yyyy, HH:mm').format(start.toLocal())
         : '-';
     final endStr = end != null
-        ? DateFormat('d MMM yyyy, HH:mm').format(end!.toLocal())
+        ? DateFormat('d MMM yyyy, HH:mm').format(end.toLocal())
         : '-';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InfoRow(icon: Icons.play_arrow_rounded, title: 'Start', value: startStr),
+        _InfoRow(
+          icon: Icons.play_arrow_rounded,
+          title: 'Start',
+          value: startStr,
+        ),
         const SizedBox(height: 12),
         _InfoRow(icon: Icons.stop_rounded, title: 'End', value: endStr),
       ],
@@ -99,7 +179,11 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
-  const _InfoRow({required this.icon, required this.title, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
