@@ -21,6 +21,9 @@ import '../../../providers/dashboard_provider.dart';
 import '../../../services/checkin_service.dart';
 import 'package:hikingapp/presentation/pages/dashboard/widgets/weather_widget.dart';
 
+import 'package:hikingapp/providers/profile_provider.dart';
+import 'package:hikingapp/services/weather_alert_service.dart';
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -120,6 +123,17 @@ class _DashboardPageContentState extends State<DashboardPageContent>
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      final profile = Provider.of<ProfileProvider>(context, listen: false);
+      final weatherEnabled = profile.settings['weatherAlerts'] ?? false;
+      if (weatherEnabled && authProvider.userId != null) {
+        WeatherAlertService.enable();
+      }
+
+      // Initialize map location tracking (handles permissions)
+      final mapProvider = Provider.of<MapProvider>(context, listen: false);
+      await mapProvider.initLocationTracking();
+
       await dashboardController.refreshDashboard(context);
       await _checkInitialInvitation();
       _startInvitePolling();
@@ -227,6 +241,10 @@ class _DashboardPageContentState extends State<DashboardPageContent>
       if (_invitePollTimer == null) {
         _startInvitePolling();
       }
+
+      // Re-trigger location permission check via MapProvider on app resume
+      final mapProvider = Provider.of<MapProvider>(context, listen: false);
+      mapProvider.initLocationTracking();
     } else if (state == AppLifecycleState.paused) {
       _invitePollTimer?.cancel();
       _invitePollTimer = null;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hikingapp/presentation/styles/app_styles.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:hikingapp/presentation/widgets/common_header.dart';
@@ -22,7 +23,6 @@ class _HikeHistoryPageState extends State<HikeHistoryPage> {
   late String _type;
   bool _loading = true;
   List<Map<String, dynamic>> _items = [];
-  String? _error;
   bool _selectionMode = false;
   final Set<String> _selectedIds = {};
 
@@ -39,13 +39,11 @@ class _HikeHistoryPageState extends State<HikeHistoryPage> {
     if (userId == null) {
       setState(() {
         _loading = false;
-        _error = 'User not found';
       });
       return;
     }
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       if (_type == 'solo') {
@@ -53,9 +51,7 @@ class _HikeHistoryPageState extends State<HikeHistoryPage> {
       } else {
         _items = await HistoryService.fetchGroupHistory(userId);
       }
-    } catch (e) {
-      _error = e.toString();
-    }
+    } catch (e) {}
     setState(() => _loading = false);
   }
 
@@ -64,151 +60,155 @@ class _HikeHistoryPageState extends State<HikeHistoryPage> {
     final title = _type == 'solo' ? 'Solo Hike History' : 'Group Hike History';
     final isOnline = Provider.of<DashboardProvider>(context).isOnline;
     return Scaffold(
-      backgroundColor: kLightCream,
-      body: SafeArea(
-        child: Column(
-          children: [
-            CommonHeader(
-              title: title,
-              showBack: true,
-              actions: [
-                if (_selectionMode)
-                  IconButton(
-                    tooltip: _selectedIds.isEmpty
-                        ? 'Select items'
-                        : 'Remove selected',
-                    onPressed: _selectedIds.isEmpty
-                        ? null
-                        : _performBatchDelete,
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: Color(0xFFE74C3C),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AnimatedBackground()),
+          SafeArea(
+            child: Column(
+              children: [
+                CommonHeader(
+                  title: title,
+                  showBack: true,
+                  actions: [
+                    if (_selectionMode)
+                      IconButton(
+                        tooltip: _selectedIds.isEmpty
+                            ? 'Select items'
+                            : 'Remove selected',
+                        onPressed: _selectedIds.isEmpty
+                            ? null
+                            : _performBatchDelete,
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: Color(0xFFE74C3C),
+                        ),
+                      ),
+                    IconButton(
+                      tooltip: _selectionMode ? 'Done' : 'Select',
+                      onPressed: _toggleSelectionMode,
+                      icon: Icon(
+                        _selectionMode
+                            ? Icons.close_rounded
+                            : Icons.check_box_outlined,
+                        color: kDeepTeal,
+                      ),
                     ),
-                  ),
-                IconButton(
-                  tooltip: _selectionMode ? 'Done' : 'Select',
-                  onPressed: _toggleSelectionMode,
-                  icon: Icon(
-                    _selectionMode
-                        ? Icons.close_rounded
-                        : Icons.check_box_outlined,
-                    color: kDeepTeal,
-                  ),
+                  ],
+                ),
+                Expanded(
+                  child: !isOnline
+                      ? Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            margin: const EdgeInsets.symmetric(horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: kDeepTeal.withOpacity(0.08),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: kDeepForest.withOpacity(0.08),
+                                        blurRadius: 25,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(
+                                        Icons.wifi_off_rounded,
+                                        color: kDeepForest,
+                                        size: 24,
+                                      ),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        'No Connection',
+                                        style: TextStyle(
+                                          color: kDeepForest,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 24),
+                                  child: Text(
+                                    'Please try again later.',
+                                    style: TextStyle(
+                                      color: kDeepForest,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : (_loading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _items.isEmpty
+                            ? _buildEmptyState()
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: _items.length,
+                                itemBuilder: (_, i) {
+                                  final item = _items[i];
+                                  final id = (item['_id'] ?? '').toString();
+                                  final selected = _selectedIds.contains(id);
+                                  return _type == 'solo'
+                                      ? _SoloItemCard(
+                                          item: item,
+                                          selectionMode: _selectionMode,
+                                          isSelected: selected,
+                                          onToggleSelect: () =>
+                                              _toggleSelectItem(id),
+                                        )
+                                      : _GroupItemCard(
+                                          item: item,
+                                          selectionMode: _selectionMode,
+                                          isSelected: selected,
+                                          onToggleSelect: () =>
+                                              _toggleSelectItem(id),
+                                        );
+                                },
+                              )),
                 ),
               ],
             ),
-            Expanded(
-              child: !isOnline
-                  ? Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: kDeepTeal.withOpacity(0.08),
-                              blurRadius: 18,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: kDeepForest.withOpacity(0.08),
-                                    blurRadius: 25,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(
-                                    Icons.wifi_off_rounded,
-                                    color: kDeepForest,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'No Connection',
-                                    style: TextStyle(
-                                      color: kDeepForest,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 24),
-                              child: Text(
-                                'Please try again later.',
-                                style: TextStyle(
-                                  color: kDeepForest,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : (_loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _items.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _items.length,
-                            itemBuilder: (_, i) {
-                              final item = _items[i];
-                              final id = (item['_id'] ?? '').toString();
-                              final selected = _selectedIds.contains(id);
-                              return _type == 'solo'
-                                  ? _SoloItemCard(
-                                      item: item,
-                                      selectionMode: _selectionMode,
-                                      isSelected: selected,
-                                      onToggleSelect: () =>
-                                          _toggleSelectItem(id),
-                                    )
-                                  : _GroupItemCard(
-                                      item: item,
-                                      selectionMode: _selectionMode,
-                                      isSelected: selected,
-                                      onToggleSelect: () =>
-                                          _toggleSelectItem(id),
-                                    );
-                            },
-                          )),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

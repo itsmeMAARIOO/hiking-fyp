@@ -161,6 +161,11 @@ router.post("/update-location", async (req, res) => {
         startTime: now,
         status: "active",
       });
+    } else {
+      // Update description if provided, even if trail exists
+      if (trailDescription !== undefined) {
+        trail.trailDescription = trailDescription;
+      }
     }
 
     trail.latestLatitude = latitude;
@@ -224,6 +229,7 @@ router.post("/notify/start", async (req, res) => {
       latitude,
       longitude,
       trailName,
+      trailDescription,
       timestamp,
       expectedEndTime,
     } = req.body;
@@ -290,6 +296,16 @@ router.post("/notify/start", async (req, res) => {
           `
               : ""
           }
+           ${
+             trailDescription
+               ? `
+           <div style="margin:16px 0; padding:12px; border:1px dashed ${borderColor}; border-radius:6px; background:#e0f2f1;">
+             <div style="font-size:14px; color:#00695c; font-weight:700;">Trail Description</div>
+             <div style="font-size:13px; color:#555;">${trailDescription}</div>
+           </div>
+           `
+               : ""
+           }
           <p style="margin:0 0 14px 0; font-size:15px;">Use the button below to open the location in Google Maps.</p>
           <a href="${googleMapsUrl}" style="display:inline-block; background:${accentColor}; color:#fff; text-decoration:none; padding:12px 18px; border-radius:6px; font-weight:700; font-size:14px;">Open in Google Maps</a>
           <p style="margin-top:18px; font-size:12px; color:#666;">If the button does not work, copy and paste this link: <br><span style="word-break:break-all;">${googleMapsUrl}</span></p>
@@ -311,6 +327,10 @@ router.post("/notify/start", async (req, res) => {
                 trailName ? `: ${trailName}` : ""
               } and shared their location.\nLat: ${latitude}, Lng: ${longitude}\nTime (MYT): ${timeMY}${
                 expectedMY ? `\nExpected End (MYT): ${expectedMY}` : ""
+              }${
+                trailDescription
+                  ? `\nDescription: ${trailDescription}`
+                  : ""
               }\nGoogle Maps: ${googleMapsUrl}`,
               html: htmlTemplate(c.name || ""),
             })
@@ -328,9 +348,14 @@ router.post("/notify/start", async (req, res) => {
         trail = await SoloTrail.create({
           userId,
           trailName: trailName || "Unnamed Trail",
+          trailDescription: trailDescription || "",
           startTime: when,
           status: "active",
         });
+      } else {
+        if (trailDescription !== undefined) {
+            trail.trailDescription = trailDescription;
+        }
       }
       trail.latestLatitude = latitude;
       trail.latestLongitude = longitude;

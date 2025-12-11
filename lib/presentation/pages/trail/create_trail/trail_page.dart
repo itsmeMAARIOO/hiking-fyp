@@ -197,6 +197,7 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
         await emergency.shareSoloStartLocation(
           context,
           trailName: name,
+          trailDescription: desc,
           expectedEndTime: expectedEnd,
         );
       } catch (_) {}
