@@ -5,30 +5,35 @@ class TabSelector extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
   final bool showChat;
+  final bool showLibrary;
 
   const TabSelector({
     super.key,
     required this.selectedIndex,
     required this.onSelect,
     this.showChat = true,
+    this.showLibrary = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final int tabCount = showChat ? 3 : 2;
+    int tabCount = 1; // Always have Map
+    if (showChat) tabCount++;
+    if (showLibrary) tabCount++;
 
     // Calculate precise alignment for the sliding indicator
     // Maps index 0..N to Alignment -1.0..1.0
-    double alignmentX = -1.0 + (2.0 * selectedIndex / (tabCount - 1));
+    double alignmentX = 0;
+    if (tabCount > 1) {
+      alignmentX = -1.0 + (2.0 * selectedIndex / (tabCount - 1));
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      // Matches the exact height of your original snippet:
-      // 4 (pad) + 15 (top) + 18 (icon) + 15 (bottom) + 4 (pad) = 56
       height: 56,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28), // Fully rounded stadium shape
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
             color: kDeepForest.withOpacity(0.08),
@@ -40,21 +45,16 @@ class TabSelector extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Calculate the width of the active indicator based on available space
           final double indicatorWidth = (constraints.maxWidth - 8) / tabCount;
 
           return Stack(
             children: [
-              // 1. The Sliding Active Indicator
-              // Using Padding allows the indicator to "float" inside the border
               Padding(
                 padding: const EdgeInsets.all(4),
                 child: AnimatedAlign(
                   alignment: Alignment(alignmentX, 0),
-                  duration: const Duration(
-                    milliseconds: 250,
-                  ), // Fast but smooth
-                  curve: Curves.easeInOutCubic, // Non-glitchy, premium feel
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOutCubic,
                   child: Container(
                     width: indicatorWidth,
                     height: double.infinity,
@@ -72,8 +72,6 @@ class TabSelector extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // 2. The Tab Icons Layer
               Row(
                 children: [
                   Expanded(
@@ -91,15 +89,14 @@ class TabSelector extends StatelessWidget {
                         onTap: () => onSelect(1),
                       ),
                     ),
-                  Expanded(
-                    child: _Tab(
-                      icon: Icons.photo_library_rounded,
-                      isSelected: showChat
-                          ? selectedIndex == 2
-                          : selectedIndex == 1,
-                      onTap: () => onSelect(showChat ? 2 : 1),
+                  if (showLibrary)
+                    Expanded(
+                      child: _Tab(
+                        icon: Icons.photo_library_rounded,
+                        isSelected: selectedIndex == (showChat ? 2 : 1),
+                        onTap: () => onSelect(showChat ? 2 : 1),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -127,7 +124,6 @@ class _Tab extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Center(
-        // Smoothly animate color change
         child: TweenAnimationBuilder<Color?>(
           duration: const Duration(milliseconds: 200),
           tween: ColorTween(
@@ -135,11 +131,7 @@ class _Tab extends StatelessWidget {
             end: isSelected ? Colors.white : kDeepForest.withOpacity(0.5),
           ),
           builder: (context, color, child) {
-            return Icon(
-              icon,
-              color: color,
-              size: 20, // Balanced size for the 56px height
-            );
+            return Icon(icon, color: color, size: 20);
           },
         ),
       ),

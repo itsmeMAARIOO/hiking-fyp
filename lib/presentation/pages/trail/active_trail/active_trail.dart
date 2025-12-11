@@ -17,6 +17,7 @@ import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/tab_sele
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/main/main_tab.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/chat/chat_tab.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/library/library_tab.dart';
+
 import 'package:hikingapp/presentation/pages/trail/active_trail/widgets/no_group_state.dart';
 import 'package:hikingapp/presentation/styles/app_styles.dart';
 import 'package:hikingapp/presentation/widgets/app_action_dialog.dart';
@@ -442,8 +443,9 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
           // Tab Selector
           TabSelector(
             selectedIndex: _selectedTab,
-            onSelect: (i) => setState(() => _selectedTab = i),
+            onSelect: (index) => setState(() => _selectedTab = index),
             showChat: !_isSolo,
+            showLibrary: !_isSolo,
           ),
 
           const SizedBox(height: 12),
@@ -519,19 +521,12 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
                     },
                   )
                 : _selectedTab == 1
-                ? (_isSolo
-                      ? LibraryTab(
-                          groupId: groupId,
-                          groupName: groupName,
-                          currentUserId: _currentUserId,
-                          currentUserName: _currentUserName,
-                        )
-                      : ChatTab(
-                          groupId: groupId,
-                          groupName: groupName,
-                          currentUserId: _currentUserId,
-                          currentUserName: _currentUserName,
-                        ))
+                ? ChatTab(
+                    groupId: groupId,
+                    groupName: groupName,
+                    currentUserId: _currentUserId,
+                    currentUserName: _currentUserName,
+                  )
                 : LibraryTab(
                     groupId: groupId,
                     groupName: groupName,
@@ -539,7 +534,6 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
                     currentUserName: _currentUserName,
                   ),
           ),
-          SizedBox(height: 12),
         ],
       ),
     );

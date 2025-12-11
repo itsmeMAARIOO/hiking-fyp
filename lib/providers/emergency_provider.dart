@@ -286,6 +286,7 @@ class EmergencyProvider extends ChangeNotifier {
   Future<void> shareSoloStartLocation(
     BuildContext context, {
     String? trailName,
+    String? trailDescription,
     DateTime? expectedEndTime,
   }) async {
     final profile = Provider.of<ProfileProvider>(context, listen: false);
@@ -339,6 +340,7 @@ class EmergencyProvider extends ChangeNotifier {
       'longitude': pos.longitude,
       'timestamp': DateTime.now().toIso8601String(),
       'trailName': trailName,
+      'trailDescription': trailDescription,
       'expectedEndTime': expectedEndTime?.toIso8601String(),
     };
     try {

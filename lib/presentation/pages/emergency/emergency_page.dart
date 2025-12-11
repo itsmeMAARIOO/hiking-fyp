@@ -1,17 +1,13 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:hikingapp/presentation/pages/emergency/widgets/emergency_quick_actions.dart';
 import 'package:hikingapp/presentation/pages/emergency/widgets/emergency_contact_card.dart';
 import 'package:hikingapp/presentation/widgets/common_header.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
 import 'package:hikingapp/providers/profile_provider.dart';
 import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:hikingapp/presentation/pages/profile/main_profile/profile_controller.dart';
 import 'widgets/emergency_button.dart';
 import '../../../providers/emergency_provider.dart';
-import 'package:hikingapp/presentation/styles/colors.dart';
 import 'package:hikingapp/presentation/styles/app_styles.dart';
 
 class EmergencyPage extends StatelessWidget {
@@ -27,10 +23,6 @@ class EmergencyPage extends StatelessWidget {
     if (effectiveUserId != null) {
       controller.setUserId(effectiveUserId);
     }
-
-    final overlayColor = emergencyProvider.emergencyMode
-        ? Colors.red.shade900
-        : kDeepTeal;
 
     return Stack(
       children: [
@@ -58,12 +50,7 @@ class EmergencyPage extends StatelessWidget {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    MediaQuery.of(context).padding.bottom + 5,
-                  ),
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -73,7 +60,6 @@ class EmergencyPage extends StatelessWidget {
                       const QuickActionsButtons(),
                       const SizedBox(height: 24),
                       EmergencyContactCard(controller: controller),
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),

@@ -352,7 +352,7 @@ class _SignupPageState extends State<SignupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStepTitle("Personal Info", "Tell us a bit about yourself."),
+          _buildStepTitle("Personal Info", "Tell us a bit about yourself"),
           const SizedBox(height: 20),
 
           _buildTextField(_nameController, "Full Name", Icons.person_outline),
@@ -418,10 +418,7 @@ class _SignupPageState extends State<SignupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStepTitle(
-            "Safety Profile",
-            "Crucial for emergency responders.",
-          ),
+          _buildStepTitle("Safety Profile", "Crucial for emergency"),
           const SizedBox(height: 20),
 
           StylishSelect(
@@ -437,7 +434,7 @@ class _SignupPageState extends State<SignupPage> {
             controller: _allergiesController,
             maxLines: 4,
             decoration: InputDecoration(
-              labelText: "Allergies / Medical Conditions",
+              labelText: "Allergies / Conditions",
               alignLabelWithHint: true,
               prefixIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 60),
@@ -482,10 +479,7 @@ class _SignupPageState extends State<SignupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStepTitle(
-            "Account Security",
-            "Secure your Hiking App account.",
-          ),
+          _buildStepTitle("Account Security", "Secure your account"),
           const SizedBox(height: 20),
 
           _buildTextField(
@@ -644,7 +638,7 @@ class _SignupPageState extends State<SignupPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          isLastStep ? "Register Account" : "Next Step",
+                          isLastStep ? "Register" : "Next Step",
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

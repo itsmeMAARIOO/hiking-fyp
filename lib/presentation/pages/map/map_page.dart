@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -24,7 +25,6 @@ import 'package:hikingapp/presentation/styles/app_styles.dart';
 import 'main_map/widgets/main_map_widget.dart';
 import 'main_map/widgets/trail_popup_card.dart';
 import 'package:hikingapp/services/saved_trail_service.dart';
-import 'saved/saved_trails_page.dart';
 
 final String googleMapsApiKey = Env.googleMapsApiKey;
 
@@ -336,6 +336,10 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _onRefresh() async {
+    // Attempt to re-initialize location tracking in case it failed or wasn't ready
+    final mapProvider = Provider.of<MapProvider>(context, listen: false);
+    await mapProvider.initLocationTracking();
+
     // clear search and re-fetch
     _searchController.clear();
     await _fetchNearbyTrails();
@@ -835,8 +839,9 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final loc = mapProvider.currentLocation;
     if (loc == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Current location not available.')),
+      SnackbarHelper.showError(
+        'Location Error',
+        'Current location not available.',
       );
       return;
     }

@@ -14,11 +14,12 @@ class MapProvider extends ChangeNotifier {
   List<Map<String, double>> get trailPoints => _trailPoints;
   Map<String, double>? get currentLocation => _currentLocation;
 
-  MapProvider() {
-    _initLocationTracking();
-  }
+  MapProvider();
 
-  Future<void> _initLocationTracking() async {
+  LocationPermission _permissionStatus = LocationPermission.unableToDetermine;
+  LocationPermission get permissionStatus => _permissionStatus;
+
+  Future<void> initLocationTracking() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -32,16 +33,18 @@ class MapProvider extends ChangeNotifier {
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
-      }
     }
 
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-        'Location permissions are permanently denied, cannot request.',
-      );
+    _permissionStatus = permission;
+    notifyListeners();
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are denied');
     }
+
+    // Cancel existing subscription if any to avoid duplicates
+    await _positionSubscription?.cancel();
 
     // Start listening to location updates
     _positionSubscription =
@@ -129,7 +132,6 @@ class MapProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-
 
   void saveSoloTrailStats({
     required int elapsedSeconds,
