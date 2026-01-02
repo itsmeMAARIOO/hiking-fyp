@@ -184,7 +184,6 @@ class _OfflineAreaPickerPageState extends State<OfflineAreaPickerPage> {
     try {
       // Collect tiles
       final List<Map<String, dynamic>> tiles = [];
-      int downloaded = 0;
 
       for (int xi = 0; xi < tilesX; xi++) {
         final x = leftTile + xi;
@@ -202,7 +201,6 @@ class _OfflineAreaPickerPageState extends State<OfflineAreaPickerPage> {
               tiles.add({'x': xi, 'y': yi, 'bytes': res.bodyBytes});
             }
           } catch (_) {}
-          downloaded++;
         }
       }
 
@@ -272,146 +270,150 @@ class _OfflineAreaPickerPageState extends State<OfflineAreaPickerPage> {
         child: SafeArea(
           child: Column(
             children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: kLightCream,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: kDeepTeal.withOpacity(0.12),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: FlutterMap(
-                        key: _mapKey,
-                        mapController: _mapController,
-                        options: MapOptions(
-                          center: _center,
-                          zoom: _zoom,
-                          onPositionChanged: _onPositionChanged,
-                          interactiveFlags: InteractiveFlag.pinchZoom |
-                              InteractiveFlag.drag |
-                              InteractiveFlag.doubleTapZoom,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: kLightCream,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kDeepTeal.withOpacity(0.12),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                        children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.hikingapp',
+                        clipBehavior: Clip.antiAlias,
+                        child: FlutterMap(
+                          key: _mapKey,
+                          mapController: _mapController,
+                          options: MapOptions(
+                            center: _center,
+                            zoom: _zoom,
+                            onPositionChanged: _onPositionChanged,
+                            interactiveFlags:
+                                InteractiveFlag.pinchZoom |
+                                InteractiveFlag.drag |
+                                InteractiveFlag.doubleTapZoom,
                           ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 22,
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: kDeepTeal),
-                          onPressed: () => Navigator.pop(context),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.hikingapp',
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white,
+                          radius: 22,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: kDeepTeal,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Save Offline Map",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _nameCtrl.text.isNotEmpty
-                          ? _nameCtrl.text
-                          : 'Selected Area',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: kDeepTeal,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isExporting ? null : _exportPdf,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kDeepTeal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Save Offline Map",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey,
                         ),
-                        child: _isExporting
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.download_rounded,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _nameCtrl.text.isNotEmpty
+                            ? _nameCtrl.text
+                            : 'Selected Area',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: kDeepTeal,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isExporting ? null : _exportPdf,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kDeepTeal,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isExporting
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
                                     color: Colors.white,
+                                    strokeWidth: 2,
                                   ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Download PDF Map",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.download_rounded,
                                       color: Colors.white,
                                     ),
-                                  ),
-                                ],
-                              ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Download PDF Map",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
           ),
         ),
       ),

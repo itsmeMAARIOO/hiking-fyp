@@ -1,5 +1,5 @@
 import express from "express";
-import CheckIn from "../models/CheckIn.js";
+import CheckIn from "../models/Checkin.js";
 
 const router = express.Router();
 

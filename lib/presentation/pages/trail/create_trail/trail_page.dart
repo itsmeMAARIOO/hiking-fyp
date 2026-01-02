@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hikingapp/data/models/group_model.dart';
 import 'package:hikingapp/presentation/pages/trail/create_trail/widgets/create_group_step1.dart';
-import 'package:hikingapp/presentation/pages/trail/create_trail/widgets/create_group_step2.dart'
-    hide kDarkPrimaryColor;
+import 'dart:async';
+import 'package:hikingapp/presentation/pages/trail/create_trail/widgets/create_group_step2.dart';
+import 'dart:ui';
 import 'package:hikingapp/presentation/pages/trail/create_trail/widgets/create_group_step3.dart';
 import 'package:hikingapp/presentation/pages/trail/active_trail/active_trail.dart';
 import 'package:hikingapp/presentation/widgets/common_header.dart';
@@ -14,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:get/get.dart';
 import 'package:hikingapp/config/routes.dart';
 import 'package:hikingapp/utils/snackbar_helper.dart';
-import 'widgets/step_indicator_widgets.dart' hide kDarkPrimaryColor;
+import 'widgets/step_indicator_widgets.dart';
 import 'widgets/group_exists_notice.dart';
 import 'package:hikingapp/providers/map_provider.dart';
 import 'package:hikingapp/presentation/styles/colors.dart';
@@ -22,7 +23,7 @@ import 'package:hikingapp/presentation/styles/app_styles.dart';
 import 'widgets/create_solo_step1.dart';
 import 'widgets/create_solo_step2.dart';
 import 'widgets/create_solo_step3.dart';
-import 'package:hikingapp/config/images/image_locations.dart';
+
 import 'package:hikingapp/presentation/widgets/loading_overlay.dart';
 import 'package:hikingapp/providers/emergency_provider.dart';
 import 'package:hikingapp/providers/profile_provider.dart';
@@ -45,6 +46,11 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
   final TextEditingController _soloTrailDescController =
       TextEditingController();
   bool _soloIsLoading = false;
+
+  bool _isCountdownActive = false;
+  late AnimationController _countdownController;
+  bool _pendingIsSolo = false;
+
   late TabController _tabController;
 
   final List<GroupMember> _selectedHikers = [];
@@ -84,10 +90,28 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
       ),
     );
     _stepTransitionController.forward();
+
+    _countdownController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    );
+    _countdownController.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed && _isCountdownActive) {
+        setState(() {
+          _isCountdownActive = false;
+        });
+        if (_pendingIsSolo) {
+          _executeStartSoloTrail();
+        } else {
+          _executeCreateGroup();
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _countdownController.dispose();
     _stepTransitionController.dispose();
     _groupNameController.dispose();
     _trailNameController.dispose();
@@ -122,12 +146,34 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
     });
   }
 
-  Future<void> _createGroup() async {
+  void _startCreationCountdown(bool isSolo) {
+    setState(() {
+      _isCountdownActive = true;
+      _pendingIsSolo = isSolo;
+    });
+    // Start from 1.0 (full) down to 0.0
+    _countdownController.reverse(from: 1.0);
+  }
+
+  void _cancelCreation() {
+    _countdownController.stop();
+    setState(() {
+      _isCountdownActive = false;
+    });
+  }
+
+  void _validateAndStartGroup() {
     if (_groupNameController.text.isEmpty) {
-      _showSnackBar('Please enter a group name');
+      SnackbarHelper.showError(
+        'Group Name Required',
+        'Please enter a group name',
+      );
       return;
     }
+    _startCreationCountdown(false);
+  }
 
+  Future<void> _executeCreateGroup() async {
     await _groupProvider.createGroup(
       groupName: _groupNameController.text,
       createdBy: _currentUserId,
@@ -163,13 +209,8 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
     }
   }
 
-  void _showSnackBar(String message) {
-    SnackbarHelper.showError('Error', message);
-  }
-
-  void _startSoloTrail() async {
+  void _validateAndStartSolo() {
     final name = _soloTrailNameController.text.trim();
-    final desc = _soloTrailDescController.text.trim();
     if (name.isEmpty) {
       SnackbarHelper.showError(
         'Trail Name Required',
@@ -177,10 +218,6 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
       );
       return;
     }
-    final profile = Provider.of<ProfileProvider>(context, listen: false);
-    final hasShare = profile.emergencyContacts.any(
-      (c) => (c['share'] ?? 'false') == 'true',
-    );
     final durMin = _soloExpectedDurationMinutes ?? 0;
     if (durMin <= 0) {
       SnackbarHelper.showError(
@@ -189,7 +226,20 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
       );
       return;
     }
+    _startCreationCountdown(true);
+  }
+
+  void _executeStartSoloTrail() async {
+    final name = _soloTrailNameController.text.trim();
+    final desc = _soloTrailDescController.text.trim();
+    final durMin = _soloExpectedDurationMinutes ?? 0;
     final expectedEnd = DateTime.now().add(Duration(minutes: durMin));
+
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    final hasShare = profile.emergencyContacts.any(
+      (c) => (c['share'] ?? 'false') == 'true',
+    );
+
     setState(() => _soloIsLoading = true);
     if (hasShare) {
       final emergency = Provider.of<EmergencyProvider>(context, listen: false);
@@ -214,7 +264,10 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
 
   void _nextStep() {
     if (_currentStep == 0 && _groupNameController.text.isEmpty) {
-      _showSnackBar('Please enter a group name');
+      SnackbarHelper.showError(
+        'Group Name Required',
+        'Please enter a group name',
+      );
       return;
     }
 
@@ -232,6 +285,22 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
   }
 
   void _soloNextStep() {
+    if (_soloStep == 0) {
+      if (_soloTrailNameController.text.trim().isEmpty) {
+        SnackbarHelper.showError(
+          'Trail Name Required',
+          'Please enter a trail name',
+        );
+        return;
+      }
+      if ((_soloExpectedDurationMinutes ?? 0) <= 0) {
+        SnackbarHelper.showError(
+          'Duration Required',
+          'Please select a trail duration',
+        );
+        return;
+      }
+    }
     setState(() {
       if (_soloStep < 2) _soloStep += 1;
     });
@@ -739,12 +808,13 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
                 LoadingOverlay(
                   visible: _soloIsLoading || provider.isLoading,
                   message: 'Creating trail...',
-                  shadeColor: Colors.black.withOpacity(0.08),
-                  spinnerColor: kMediumSage,
-                  spinnerBackgroundColor: kMediumSage.withOpacity(0.2),
-                  logoAsset: ImageLocation.appLogo,
-                  size: 110,
                 ),
+
+                if (_isCountdownActive)
+                  _CountdownOverlay(
+                    controller: _countdownController,
+                    onCancel: _cancelCreation,
+                  ),
 
                 IgnorePointer(
                   ignoring:
@@ -789,7 +859,7 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
                                         isLoading: provider.isLoading,
                                         onNext: _currentStep < 2
                                             ? _nextStep
-                                            : _createGroup,
+                                            : _validateAndStartGroup,
                                         onBack: _previousStep,
                                       )
                                     : NavigationButton(
@@ -798,7 +868,7 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
                                         isLoading: _soloIsLoading,
                                         onNext: _soloStep < 2
                                             ? _soloNextStep
-                                            : _startSoloTrail,
+                                            : _validateAndStartSolo,
                                         onBack: _soloPrevStep,
                                         showBackButton: true,
                                       ),
@@ -816,9 +886,182 @@ class _TrailPageState extends State<TrailPage> with TickerProviderStateMixin {
   }
 }
 
-Widget _buildTabLabel(IconData icon, String text) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(text)],
-  );
-}
+class _CountdownOverlay extends StatelessWidget {
+  final AnimationController controller;
+  final VoidCallback onCancel;
+
+  const _CountdownOverlay({required this.controller, required this.onCancel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          // Frosted Glass Background
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+            child: Container(color: kDeepTeal.withOpacity(0.3)),
+          ),
+          Center(
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 300),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.scale(
+                    scale: 0.8 + (0.2 * value),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 32,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kDeepTeal.withOpacity(0.2),
+                      blurRadius: 40,
+                      offset: const Offset(0, 15),
+                      spreadRadius: -5,
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Starting Trail",
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: kDeepTeal,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    AnimatedBuilder(
+                      animation: controller,
+                      builder: (context, child) {
+                        // Current second 5..1
+                        int currentSecond = (controller.value * 5).ceil();
+                        if (currentSecond <= 0 && controller.isAnimating) {
+                          currentSecond = 1;
+                        }
+
+                        return SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Background Ring
+                              SizedBox(
+                                width: 120,
+                                height: 120,
+                                child: CircularProgressIndicator(
+                                  value: 1.0,
+                                  strokeWidth: 8,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    kMediumSage.withOpacity(0.2),
+                                  ),
+                                ),
+                              ),
+                              // Progress Ring (Smooth)
+                              SizedBox(
+                                width: 120,
+                                height: 120,
+                                child: CircularProgressIndicator(
+                                  value: controller.value,
+                                  strokeWidth: 8,
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    kMediumSage,
+                                  ),
+                                  strokeCap: StrokeCap.round,
+                                ),
+                              ),
+                              // Number (Animated Switcher)
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 300),
+                                    transitionBuilder: (child, animation) {
+                                      return ScaleTransition(
+                                        scale: animation,
+                                        child: FadeTransition(
+                                          opacity: animation,
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      '$currentSecond',
+                                      key: ValueKey<int>(currentSecond),
+                                      style: const TextStyle(
+                                        fontSize: 48,
+                                        fontWeight: FontWeight.w800,
+                                        color: kDeepTeal,
+                                        height: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                  const Text(
+                                    "SEC",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: kDeepForest,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    TextButton(
+                      onPressed: onCancel,
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFEBEE),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          SizedBox(width: 60),
+                          Icon(
+                            Icons.close_rounded,
+                            size: 20,
+                            color: Color(0xFFD32F2F),
+                          ),
+                          SizedBox(width: 60),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+} // End of file logic

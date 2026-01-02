@@ -156,7 +156,7 @@ class DashboardController {
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
       final auth = Provider.of<AuthProvider>(context, listen: false);
       try {
-        await groupProvider.fetchGroupById(groupId);
+        await groupProvider.fetchGroupById(groupId, currentUserId: auth.userId);
         await groupProvider.updateMyLocation(
           groupId: groupId,
           userId: auth.userId ?? '',

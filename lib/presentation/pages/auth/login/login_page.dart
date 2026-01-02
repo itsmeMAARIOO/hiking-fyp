@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -232,7 +231,8 @@ class _LoginPageState extends State<LoginPage>
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () => Get.toNamed(AppRoutes.forgotPassword),
+                              onPressed: () =>
+                                  Get.toNamed(AppRoutes.forgotPassword),
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                               ),
@@ -316,6 +316,58 @@ class _LoginPageState extends State<LoginPage>
                               ),
                               Expanded(child: Divider(color: Colors.grey[300])),
                             ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // --- Google Sign In Button ---
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: OutlinedButton(
+                              onPressed: () => controller.signInWithGoogle(),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                backgroundColor: Colors.white,
+                                elevation: 0,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Simple G logo representation since we don't have asset
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        "G",
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: kDeepForest,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    "Sign in with Google",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: kDeepForest,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
 
                           const SizedBox(height: 24),

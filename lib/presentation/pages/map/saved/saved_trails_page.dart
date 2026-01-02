@@ -65,7 +65,6 @@ class _SavedTrailsPageState extends State<SavedTrailsPage> {
 
   Future<void> _deleteTrail(int index, String placeId) async {
     // Optimistically remove from UI
-    final deletedItem = _items[index];
     setState(() {
       _items.removeAt(index);
     });
@@ -249,9 +248,9 @@ class _SavedTrailsPageState extends State<SavedTrailsPage> {
     final photoRef = (t['photoReference'] ?? '').toString();
     final img = (t['imageUrl'] ?? '').toString();
     String? photoUrl;
-    if (img.isNotEmpty)
+    if (img.isNotEmpty) {
       photoUrl = img;
-    else if (photoRef.isNotEmpty) {
+    } else if (photoRef.isNotEmpty) {
       photoUrl =
           'https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=$photoRef&key=${Env.googleMapsApiKey}';
     }
@@ -278,16 +277,18 @@ class _SavedTrailsPageState extends State<SavedTrailsPage> {
         if (!_routeRequested.contains(placeId)) {
           _routeRequested.add(placeId);
           _getRouteDistanceKm(
-            mp.currentLocation!['latitude']!,
-            mp.currentLocation!['longitude']!,
-            lat,
-            lon,
-          ).then((rk) {
-            if (rk != null) {
-              _routeDistances[placeId] = rk;
-              if (mounted) setState(() {});
-            }
-          }).catchError((_) {});
+                mp.currentLocation!['latitude']!,
+                mp.currentLocation!['longitude']!,
+                lat,
+                lon,
+              )
+              .then((rk) {
+                if (rk != null) {
+                  _routeDistances[placeId] = rk;
+                  if (mounted) setState(() {});
+                }
+              })
+              .catchError((_) {});
         }
       }
     }
@@ -317,7 +318,7 @@ class _SavedTrailsPageState extends State<SavedTrailsPage> {
                     ? Image.network(
                         photoUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildFallbackGradient(),
+                        errorBuilder: (_, _, _) => _buildFallbackGradient(),
                       )
                     : _buildFallbackGradient(),
               ),
@@ -527,7 +528,8 @@ class _SavedTrailsPageState extends State<SavedTrailsPage> {
     final key = Env.googleMapsApiKey;
     if (key.isEmpty) return null;
     final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/directions/json?origin=$oLat,$oLon&destination=$dLat,$dLon&mode=driving&key=$key');
+      'https://maps.googleapis.com/maps/api/directions/json?origin=$oLat,$oLon&destination=$dLat,$dLon&mode=driving&key=$key',
+    );
     final resp = await http.get(url).timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return null;
     final data = jsonDecode(resp.body) as Map<String, dynamic>;

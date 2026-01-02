@@ -98,4 +98,81 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<void> signInWithGoogle() async {
+    isLoading.value = true;
+    try {
+      // 1. Authenticate with Google (Client Side)
+      final googleUserMap = await AuthService.signInWithGoogle();
+
+      if (googleUserMap != null && googleUserMap['idToken'] != null) {
+        final idToken = googleUserMap['idToken']!;
+
+        // 2. Send Token to Backend
+        try {
+          final response = await AuthService.googleLogin(idToken);
+
+          if (response.containsKey("token")) {
+            // --- CASE A: USER EXISTS (LOGIN SUCCESS) ---
+            // Save Token (if using storage)
+            // await storage.write(key: 'token', value: response['token']);
+
+            // Update Providers
+            final authProvider = Get.context!.read<AuthProvider>();
+            authProvider.setUser({
+              'id': response['user']['id'],
+              'email': response['user']['email'],
+              'name': response['user']['name'],
+              'profileImage': response['user']['profileImage'],
+            });
+
+            final profileProvider = Get.context!.read<ProfileProvider>();
+            profileProvider.setProfile({
+              'id': response['user']['id'],
+              'email': response['user']['email'],
+              'name': response['user']['name'],
+              'profileImage': response['user']['profileImage'],
+            });
+
+            SnackbarHelper.showSuccess(
+              "Success",
+              "Welcome back, ${response['user']['name']}!",
+            );
+
+            Get.offAllNamed(AppRoutes.dashboard);
+          } else {
+            // --- CASE B: NEW USER (NEEDS REGISTRATION) ---
+            // This depends on your backend response structure.
+            // If backend creates user automatically, this block might not be reached.
+            // But if backend returns a "Action Required" status:
+            Get.toNamed(
+              AppRoutes.signup,
+              arguments: {
+                'name': googleUserMap['name'],
+                'email': googleUserMap['email'],
+                'isGoogleAuth': true, // Flag to indicate google auth
+              },
+            );
+          }
+        } catch (backendError) {
+          // If backend error indicates 'User not found' or similar, redirect to signup
+          print("Backend Auth Error: $backendError");
+
+          Get.toNamed(
+            AppRoutes.signup,
+            arguments: {
+              'name': googleUserMap['name'],
+              'email': googleUserMap['email'],
+              'isGoogleAuth': true,
+              'idToken': idToken, // Pass token if needed for final registration
+            },
+          );
+        }
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Google Sign In failed: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

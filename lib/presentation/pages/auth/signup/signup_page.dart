@@ -16,7 +16,7 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   // --- Controllers ---
-  final _nameController = TextEditingController();
+  late final TextEditingController _nameController;
   final _phoneController = TextEditingController();
   final _dobController = TextEditingController();
   final _weightController = TextEditingController();
@@ -24,7 +24,7 @@ class _SignupPageState extends State<SignupPage> {
 
   final _allergiesController = TextEditingController();
 
-  final _emailController = TextEditingController();
+  late final TextEditingController _emailController;
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController(); // New controller
 
@@ -53,6 +53,14 @@ class _SignupPageState extends State<SignupPage> {
         _dobController.text = _formatDate(picked);
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final args = Get.arguments as Map<String, dynamic>? ?? {};
+    _nameController = TextEditingController(text: args['name'] ?? '');
+    _emailController = TextEditingController(text: args['email'] ?? '');
   }
 
   String _formatDate(DateTime d) {

@@ -31,26 +31,7 @@ class _Step1GroupDetailsState extends State<Step1GroupDetails> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 8),
-          const Text(
-            "Create Your Group",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: kDeepForest,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Name your group and trail",
-            style: TextStyle(
-              fontSize: 15,
-              color: kDeepForest.withOpacity(0.6),
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 32),
+
           Container(
             decoration: BoxDecoration(
               color: Colors.white,

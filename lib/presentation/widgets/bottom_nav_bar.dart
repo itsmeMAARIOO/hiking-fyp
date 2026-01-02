@@ -51,6 +51,10 @@ class _BottomNavBarState extends State<BottomNavBar>
     _slideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _slideController, curve: Curves.easeInOutCubic),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -85,8 +89,6 @@ class _BottomNavBarState extends State<BottomNavBar>
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-
     return Padding(
       padding: EdgeInsets.zero,
       child: ClipRRect(
@@ -212,26 +214,26 @@ class _BottomNavBarState extends State<BottomNavBar>
         builder: (_, child) {
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 6),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: isActive
-                        ? [kFreshRed, kEmergencyMediumRed]
-                        : [kEmergencyMediumRed, kEmergencyLightRed],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.9),
-                    width: 3,
-                  ),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: isActive
+                      ? [kFreshRed, kEmergencyMediumRed]
+                      : [kEmergencyMediumRed, kEmergencyLightRed],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: child,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.9),
+                  width: 3,
+                ),
               ),
+              child: child,
+            ),
           );
         },
         child: Column(

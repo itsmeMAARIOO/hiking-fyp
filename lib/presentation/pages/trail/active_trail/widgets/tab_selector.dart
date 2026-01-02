@@ -6,6 +6,7 @@ class TabSelector extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final bool showChat;
   final bool showLibrary;
+  final bool hasUnread;
 
   const TabSelector({
     super.key,
@@ -13,6 +14,7 @@ class TabSelector extends StatelessWidget {
     required this.onSelect,
     this.showChat = true,
     this.showLibrary = true,
+    this.hasUnread = false,
   });
 
   @override
@@ -87,6 +89,7 @@ class TabSelector extends StatelessWidget {
                         icon: Icons.chat_bubble_rounded,
                         isSelected: selectedIndex == 1,
                         onTap: () => onSelect(1),
+                        isUnread: hasUnread,
                       ),
                     ),
                   if (showLibrary)
@@ -111,11 +114,13 @@ class _Tab extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isUnread;
 
   const _Tab({
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    this.isUnread = false,
   });
 
   @override
@@ -127,8 +132,12 @@ class _Tab extends StatelessWidget {
         child: TweenAnimationBuilder<Color?>(
           duration: const Duration(milliseconds: 200),
           tween: ColorTween(
-            begin: kDeepForest.withOpacity(0.5),
-            end: isSelected ? Colors.white : kDeepForest.withOpacity(0.5),
+            begin: isUnread && !isSelected
+                ? kFreshRed
+                : kDeepForest.withOpacity(0.5),
+            end: isSelected
+                ? Colors.white
+                : (isUnread ? kFreshRed : kDeepForest.withOpacity(0.5)),
           ),
           builder: (context, color, child) {
             return Icon(icon, color: color, size: 20);

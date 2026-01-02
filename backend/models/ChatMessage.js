@@ -9,6 +9,12 @@ const ChatMessageSchema = new mongoose.Schema(
     imageUrl: { type: String },
     // Store Cloudinary public_id to allow deletion of the asset later
     publicId: { type: String },
+    seenBy: [
+      {
+        userId: { type: String },
+        seenAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

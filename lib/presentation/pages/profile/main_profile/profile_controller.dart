@@ -256,7 +256,7 @@ class ProfileController {
     required bool isGroup,
     int? year,
   }) {
-    DateTime? _extractEnd(Map<String, dynamic> item) {
+    DateTime? extractEnd(Map<String, dynamic> item) {
       try {
         if (isGroup) {
           final endRaw = item['activeTrail']?['endTime'];
@@ -308,7 +308,7 @@ class ProfileController {
     }
 
     for (final item in raw) {
-      final d = _extractEnd(item);
+      final d = extractEnd(item);
       if (d == null) continue;
       if (filter == 'Year' && year != null && d.year != year) continue;
       final k = keyFor(d);
@@ -343,7 +343,7 @@ class ProfileController {
 
   List<int> _extractYears(List<Map<String, dynamic>> raw) {
     final s = <int>{};
-    DateTime? _extractEnd(Map<String, dynamic> item) {
+    DateTime? extractEnd(Map<String, dynamic> item) {
       try {
         final endRaw =
             item['activeTrail']?['endTime'] ??
@@ -363,7 +363,7 @@ class ProfileController {
     }
 
     for (final item in raw) {
-      final d = _extractEnd(item);
+      final d = extractEnd(item);
       if (d != null) s.add(d.year);
     }
     final list = s.toList()..sort();

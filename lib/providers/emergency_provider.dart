@@ -18,7 +18,7 @@ import 'package:hikingapp/config/api_config.dart';
 class EmergencyProvider extends ChangeNotifier {
   bool _sosActive = false;
   bool _fallDetectionEnabled = true;
-  FallSensitivity _fallSensitivity = FallSensitivity.medium;
+
   bool _emergencyMode = false;
   bool _isSendingLocation = false;
 
@@ -34,15 +34,16 @@ class EmergencyProvider extends ChangeNotifier {
 
   bool get sosActive => _sosActive;
   bool get fallDetectionEnabled => _fallDetectionEnabled;
-  FallSensitivity get fallSensitivity => _fallSensitivity;
+
   bool get emergencyMode => _emergencyMode;
   bool get isCountingDown => _isCountingDown;
   int get countdownRemaining => _countdownRemaining;
   bool get isSendingLocation => _isSendingLocation;
 
-  void triggerSOS(BuildContext context) {
+  void triggerSOS(BuildContext? context, {bool fromFallDetection = false}) {
     // If alarm is active, tapping cancels it
     if (_sosActive) {
+      if (fromFallDetection) return; // Ignore fall trigger if already active
       _stopAlarm();
       _sosActive = false;
       _emergencyMode = false;
@@ -52,17 +53,25 @@ class EmergencyProvider extends ChangeNotifier {
 
     // If countdown is running, tapping cancels
     if (_isCountingDown) {
+      if (fromFallDetection)
+        return; // Ignore fall trigger if already counting down
       _countdownTimer?.cancel();
       _isCountingDown = false;
       _countdownRemaining = 0;
+      // Stop countdown sound if playing
+      try {
+        _audioPlayer.stop();
+      } catch (_) {}
       notifyListeners();
       return;
     }
 
-    // Start 3-second inline countdown
+    // Start countdown
     _isCountingDown = true;
-    _countdownRemaining = 3;
+    _countdownRemaining = fromFallDetection ? 10 : 3;
     notifyListeners();
+
+    _playCountdownSound();
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
       _countdownRemaining -= 1;
@@ -77,20 +86,23 @@ class EmergencyProvider extends ChangeNotifier {
     });
   }
 
+  Future<void> _playCountdownSound() async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.setReleaseMode(ap.ReleaseMode.loop);
+      await _audioPlayer.play(ap.AssetSource('sounds/countdown.mp3'));
+    } catch (e) {
+      debugPrint("Error playing countdown sound: $e");
+    }
+  }
+
   void toggleFallDetection(bool enabled) {
     _fallDetectionEnabled = enabled;
     if (enabled) {
       _ensureFallDetectionListener();
     } else {
       _tearDownFallDetectionListener();
-    }
-    notifyListeners();
-  }
-
-  void setFallSensitivity(FallSensitivity s) {
-    _fallSensitivity = s;
-    if (_fallService != null) {
-      _fallService!.setSensitivity(s);
     }
     notifyListeners();
   }
@@ -418,19 +430,13 @@ class EmergencyProvider extends ChangeNotifier {
     _fallService ??= FallDetectionService();
     _fallService!.enableDebug = true;
     await _fallService!.init();
-    await _fallService!.setSensitivity(_fallSensitivity);
+    await _fallService!.init();
     _fallSub?.cancel();
     _fallSub = _fallService!.fallStream.listen((isFalling) {
       if (!_fallDetectionEnabled) return;
       if (isFalling) {
         final ctx = Get.context;
-        if (ctx != null) {
-          triggerSOS(ctx);
-        } else {
-          _isCountingDown = false;
-          _countdownRemaining = 0;
-          _startAlarm();
-        }
+        triggerSOS(ctx, fromFallDetection: true);
       }
     });
     _fallListenerAttached = true;

@@ -153,6 +153,20 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
         }
       }
     });
+
+    _groupProvider.addListener(_onGroupProviderUpdate);
+  }
+
+  void _onGroupProviderUpdate() {
+    if (!_isSolo && mounted) {
+      final p = _groupProvider;
+      // Sync if local timer drifts significantly from provider (socket) time
+      if ((p.elapsedSeconds - _elapsedTime.inSeconds).abs() > 2) {
+        setState(() {
+          _elapsedTime = Duration(seconds: p.elapsedSeconds);
+        });
+      }
+    }
   }
 
   void _restoreSavedStats() {
@@ -336,6 +350,8 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
 
   @override
   void dispose() {
+    _groupProvider.setChatVisible(false);
+    _groupProvider.removeListener(_onGroupProviderUpdate);
     _pulseController.dispose();
     _timer?.cancel();
     _statusPoller?.cancel();
@@ -443,96 +459,104 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
           // Tab Selector
           TabSelector(
             selectedIndex: _selectedTab,
-            onSelect: (index) => setState(() => _selectedTab = index),
+            onSelect: (index) {
+              setState(() => _selectedTab = index);
+              provider.setChatVisible(index == 1);
+            },
             showChat: !_isSolo,
             showLibrary: !_isSolo,
+            hasUnread: provider.hasUnreadMessages,
           ),
 
           const SizedBox(height: 12),
 
           // Tabbed Content Area
           Expanded(
-            child: _selectedTab == 0
-                ? MainTab(
-                    otherMembers: otherMembers,
-                    focusLat: _focusLat,
-                    focusLon: _focusLon,
-                    showAllTrigger: _showAllTrigger,
-                    onShowAll: () {
-                      setState(() {
-                        _focusLat = null;
-                        _focusLon = null;
-                        _showAllTrigger++;
-                      });
-                    },
-                    onSelectMember: (lat, lon) {
-                      setState(() {
-                        _focusLat = lat;
-                        _focusLon = lon;
-                      });
-                    },
-                    elapsedTime: _elapsedTime,
-                    totalDistance: _totalDistance,
-                    currentSpeed: _currentSpeed,
-                    isTracking: _isTracking,
-                    onToggleTracking: () {
-                      if (_isSolo) {
-                        final newVal = !_isTracking;
-                        setState(() => _isTracking = newVal);
-                        if (newVal) {
-                          _startTimer();
-                          _groupProvider.startLocationUpdates(
-                            forSolo: true,
-                            userId: _currentUserId,
-                            userName: _currentUserName,
-                            trailName: _soloTrailName,
-                          );
-                        } else {
-                          _stopTimer();
-                          _groupProvider.stopLocationUpdates();
-                        }
-                      } else {
-                        TrailServices.toggleTracking(
-                          context: context,
-                          isTracking: _isTracking,
+            child: IndexedStack(
+              index: _selectedTab,
+              children: [
+                MainTab(
+                  otherMembers: otherMembers,
+                  focusLat: _focusLat,
+                  focusLon: _focusLon,
+                  showAllTrigger: _showAllTrigger,
+                  onShowAll: () {
+                    setState(() {
+                      _focusLat = null;
+                      _focusLon = null;
+                      _showAllTrigger++;
+                    });
+                  },
+                  onSelectMember: (lat, lon) {
+                    setState(() {
+                      _focusLat = lat;
+                      _focusLon = lon;
+                    });
+                  },
+                  elapsedTime: _elapsedTime,
+                  totalDistance: _totalDistance,
+                  currentSpeed: _currentSpeed,
+                  isTracking: _isTracking,
+                  onToggleTracking: () {
+                    if (_isSolo) {
+                      final newVal = !_isTracking;
+                      setState(() => _isTracking = newVal);
+                      if (newVal) {
+                        _startTimer();
+                        _groupProvider.startLocationUpdates(
+                          forSolo: true,
                           userId: _currentUserId,
                           userName: _currentUserName,
-                          onTrackingChanged: (val) {
-                            setState(() => _isTracking = val);
-                            if (val) {
-                              _startTimer();
-                            } else {
-                              _stopTimer();
-                            }
-                          },
+                          trailName: _soloTrailName,
                         );
-                      }
-                    },
-                    onEndTrail: () {
-                      if (_isSolo) {
-                        _showSoloEndDialog(context);
                       } else {
-                        TrailServices.showEndTrailDialog(
-                          context: context,
-                          provider: provider,
-                          userId: _currentUserId,
-                        );
+                        _stopTimer();
+                        _groupProvider.stopLocationUpdates();
                       }
-                    },
-                  )
-                : _selectedTab == 1
-                ? ChatTab(
-                    groupId: groupId,
-                    groupName: groupName,
-                    currentUserId: _currentUserId,
-                    currentUserName: _currentUserName,
-                  )
-                : LibraryTab(
-                    groupId: groupId,
-                    groupName: groupName,
-                    currentUserId: _currentUserId,
-                    currentUserName: _currentUserName,
-                  ),
+                    } else {
+                      TrailServices.toggleTracking(
+                        context: context,
+                        isTracking: _isTracking,
+                        userId: _currentUserId,
+                        userName: _currentUserName,
+                        onTrackingChanged: (val) {
+                          setState(() => _isTracking = val);
+                          if (val) {
+                            _startTimer();
+                          } else {
+                            _stopTimer();
+                          }
+                        },
+                      );
+                    }
+                  },
+                  onEndTrail: () {
+                    if (_isSolo) {
+                      _showSoloEndDialog(context);
+                    } else {
+                      TrailServices.showEndTrailDialog(
+                        context: context,
+                        provider: provider,
+                        userId: _currentUserId,
+                      );
+                    }
+                  },
+                ),
+                ChatTab(
+                  groupId: groupId,
+                  groupName: groupName,
+                  currentUserId: _currentUserId,
+                  currentUserName: _currentUserName,
+                  isVisible: _selectedTab == 1,
+                ),
+                LibraryTab(
+                  groupId: groupId,
+                  groupName: groupName,
+                  currentUserId: _currentUserId,
+                  currentUserName: _currentUserName,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -569,34 +593,34 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
   }
 
   void _onMinimize(GroupProvider provider) {
+    // Perform state saving before navigation to ensure context is valid
+    if (_isSolo) {
+      final mp = Provider.of<MapProvider>(context, listen: false);
+      mp.saveSoloTrailStats(
+        elapsedSeconds: _elapsedTime.inSeconds,
+        totalDistanceKm: _totalDistance,
+        currentSpeedKmh: _currentSpeed,
+        trailName: _soloTrailName.isNotEmpty ? _soloTrailName : null,
+        lastLat: _lastLocation?.latitude,
+        lastLon: _lastLocation?.longitude,
+        lastUpdateTime: _lastUpdateTime,
+        wasTracking: _isTracking,
+      );
+      mp.setSoloTrailMinimized(true);
+    } else {
+      _groupProvider.saveTrailStats(
+        elapsedSeconds: _elapsedTime.inSeconds,
+        totalDistanceKm: _totalDistance,
+        currentSpeedKmh: _currentSpeed,
+        lastLat: _lastLocation?.latitude,
+        lastLon: _lastLocation?.longitude,
+        lastUpdateTime: _lastUpdateTime,
+        wasTracking: _isTracking,
+      );
+      _groupProvider.setTrailMinimized(true);
+    }
+
     Get.offNamed(AppRoutes.dashboard);
-    Future.microtask(() {
-      if (_isSolo) {
-        final mp = Provider.of<MapProvider>(context, listen: false);
-        mp.saveSoloTrailStats(
-          elapsedSeconds: _elapsedTime.inSeconds,
-          totalDistanceKm: _totalDistance,
-          currentSpeedKmh: _currentSpeed,
-          trailName: _soloTrailName.isNotEmpty ? _soloTrailName : null,
-          lastLat: _lastLocation?.latitude,
-          lastLon: _lastLocation?.longitude,
-          lastUpdateTime: _lastUpdateTime,
-          wasTracking: _isTracking,
-        );
-        mp.setSoloTrailMinimized(true);
-      } else {
-        _groupProvider.saveTrailStats(
-          elapsedSeconds: _elapsedTime.inSeconds,
-          totalDistanceKm: _totalDistance,
-          currentSpeedKmh: _currentSpeed,
-          lastLat: _lastLocation?.latitude,
-          lastLon: _lastLocation?.longitude,
-          lastUpdateTime: _lastUpdateTime,
-          wasTracking: _isTracking,
-        );
-        _groupProvider.setTrailMinimized(true);
-      }
-    });
   }
 }
 

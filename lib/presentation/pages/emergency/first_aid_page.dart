@@ -6,6 +6,7 @@ import 'package:hikingapp/providers/auth_provider.dart';
 import 'package:hikingapp/providers/profile_provider.dart';
 import 'package:hikingapp/services/first_aid_service.dart';
 import 'package:hikingapp/data/models/first_aid_guide.dart';
+import 'package:hikingapp/presentation/widgets/app_action_dialog.dart';
 
 class FirstAidPage extends StatefulWidget {
   const FirstAidPage({super.key});
@@ -55,8 +56,9 @@ class _FirstAidPageState extends State<FirstAidPage>
           _buildNoteDialog(ctx, titleCtrl, contentCtrl, isEdit: false),
     );
     if (ok == true && _userId != null) {
-      if (titleCtrl.text.trim().isEmpty || contentCtrl.text.trim().isEmpty)
+      if (titleCtrl.text.trim().isEmpty || contentCtrl.text.trim().isEmpty) {
         return;
+      }
       final g = await _service.addNote(
         userId: _userId!,
         title: titleCtrl.text.trim(),
@@ -68,7 +70,7 @@ class _FirstAidPageState extends State<FirstAidPage>
 
   Future<void> _editNote(FirstAidGuide g) async {
     final titleCtrl = TextEditingController(text: g.title);
-    final contentCtrl = TextEditingController(text: g.content ?? '');
+    final contentCtrl = TextEditingController(text: g.content);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) =>
@@ -98,25 +100,19 @@ class _FirstAidPageState extends State<FirstAidPage>
   Future<void> _delete(String id) async {
     if (_userId == null) return;
     // Show confirmation
-    final confirm = await showDialog<bool>(
+    // Show confirmation
+    final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Note?"),
-        content: const Text("This cannot be undone."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (ctx) => AppActionDialog(
+        title: 'Delete Note?',
+        icon: Icons.delete_forever_rounded,
+        message: 'This cannot be undone.',
+        confirmText: 'Delete',
+        confirmColor: Color(0xFFCC5500),
       ),
     );
 
-    if (confirm == true) {
+    if (result == 'confirm') {
       await _service.deleteGuide(userId: _userId!, id: id);
       setState(() => _items.removeWhere((e) => e.id == id));
     }
@@ -128,123 +124,128 @@ class _FirstAidPageState extends State<FirstAidPage>
     TextEditingController contentCtrl, {
     required bool isEdit,
   }) {
-    return Dialog(
-      backgroundColor:
-          Colors.transparent, // Transparent to let Container handle shape
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 20,
-      ), // Fixes the "Too Narrow" issue
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 25,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 1. Header Icon
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: kMediumSage.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isEdit ? Icons.edit_note_rounded : Icons.note_add_rounded,
-                color: kMediumSage,
-                size: 32,
-              ),
-            ),
+    bool showTitleError = false;
+    bool showContentError = false;
 
-            const SizedBox(height: 20),
-
-            // 3. Custom Input Fields
-            _buildModernTextField(
-              controller: titleCtrl,
-              label: 'Title',
-              icon: Icons.title_rounded,
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildModernTextField(
-              controller: contentCtrl,
-              label: 'Content',
-              icon: Icons.description_outlined,
-              maxLines: 5,
-              isMultiline: true,
-            ),
-
-            const SizedBox(height: 32),
-
-            // 4. Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[600],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      "Cancel",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kDeepTeal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 8,
-                      shadowColor: kDeepTeal.withOpacity(0.4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      "Save Note",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 25,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: kMediumSage.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isEdit ? Icons.edit_note_rounded : Icons.note_add_rounded,
+                    color: kMediumSage,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildModernTextField(
+                  controller: titleCtrl,
+                  label: 'Title',
+                  icon: Icons.title_rounded,
+                  hasError: showTitleError,
+                ),
+                const SizedBox(height: 16),
+                _buildModernTextField(
+                  controller: contentCtrl,
+                  label: 'Content',
+                  icon: Icons.description_outlined,
+                  maxLines: 5,
+                  isMultiline: true,
+                  hasError: showContentError,
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey[600],
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            showTitleError = titleCtrl.text.trim().isEmpty;
+                            showContentError = contentCtrl.text.trim().isEmpty;
+                          });
+                          if (!showTitleError && !showContentError) {
+                            Navigator.pop(context, true);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kDeepTeal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          elevation: 8,
+                          shadowColor: kDeepTeal.withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          "Save Note",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  // Helper for the styled text fields
   Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     int maxLines = 1,
     bool isMultiline = false,
+    bool hasError = false,
   }) {
     return TextField(
       controller: controller,
@@ -257,31 +258,43 @@ class _FirstAidPageState extends State<FirstAidPage>
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-          color: Colors.grey[500],
+          color: hasError ? Colors.red : Colors.grey[500],
           fontWeight: FontWeight.w500,
         ),
         floatingLabelBehavior: FloatingLabelBehavior.auto,
         alignLabelWithHint: true,
         prefixIcon: Padding(
-          // Adjust icon position if multiline to stay at top
           padding: isMultiline
               ? const EdgeInsets.only(bottom: 85)
               : const EdgeInsets.all(0),
-          child: Icon(icon, color: kDeepTeal, size: 22),
+          child: Icon(icon, color: hasError ? Colors.red : kDeepTeal, size: 22),
         ),
         filled: true,
-        fillColor: const Color(0xFFF5F7F6), // Very light grey/sage tint
+        fillColor: hasError
+            ? Colors.red.withOpacity(0.05)
+            : const Color(0xFFF5F7F6),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none, // No border by default (Cleaner look)
+          borderSide: hasError
+              ? const BorderSide(color: Colors.red, width: 1.5)
+              : BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: hasError
+              ? const BorderSide(color: Colors.red, width: 1.5)
+              : BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: kDeepTeal, width: 1.5),
+          borderSide: BorderSide(
+            color: hasError ? Colors.red : kDeepTeal,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -296,10 +309,6 @@ class _FirstAidPageState extends State<FirstAidPage>
       ),
       child: Scaffold(
         backgroundColor: kLightCream,
-
-        // Floating Action Button only shows on "My Notes" tab logic can be handled inside tabs
-        // But here we put it globally for simplicity, or hide it based on index.
-        // We will put a dedicated button inside _MyGuidesTab for better UX.
         floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
         floatingActionButton: Padding(
           padding: const EdgeInsets.only(bottom: 16, left: 8),
@@ -426,10 +435,6 @@ class _FirstAidPageState extends State<FirstAidPage>
   }
 }
 
-// ============================================================================
-// 1. PRESET GUIDE TAB (Expandable Cards)
-// ============================================================================
-
 class _PresetGuideTab extends StatefulWidget {
   @override
   State<_PresetGuideTab> createState() => _PresetGuideTabState();
@@ -482,10 +487,6 @@ class _PresetGuideTabState extends State<_PresetGuideTab> {
     );
   }
 }
-
-// ============================================================================
-// 2. MY GUIDES TAB (Expandable + Editable)
-// ============================================================================
 
 class _MyGuidesTab extends StatelessWidget {
   final List<FirstAidGuide> items;
@@ -542,13 +543,13 @@ class _MyGuidesTab extends StatelessWidget {
             ), // Padding for FAB
             physics: const BouncingScrollPhysics(),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final item = items[index];
               return _ExpandableGuideCard(
                 title: item.title,
                 // Convert single string content to list for display
-                content: (item.content ?? '').split('\n'),
+                content: (item.content).split('\n'),
                 icon: Icons.sticky_note_2_rounded,
                 color: kMediumSage,
                 isUserNote: true,
@@ -574,10 +575,6 @@ class _MyGuidesTab extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// 3. THE EXPANDABLE CARD WIDGET (Shared)
-// ============================================================================
 
 class _ExpandableGuideCard extends StatelessWidget {
   final String title;
@@ -794,8 +791,9 @@ class _ExpandableGuideCard extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           Navigator.pop(ctx);
-                          if (onDelete != null)
+                          if (onDelete != null) {
                             onDelete!(); // Using your callback
+                          }
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.redAccent,

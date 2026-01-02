@@ -89,7 +89,7 @@ class GroupExistsNotice extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (trail != null && trail.isNotEmpty) ...[
+                    if (trail.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         'Trail: $trail',

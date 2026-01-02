@@ -75,6 +75,7 @@ class ChatService {
     required String groupId,
     required void Function(Map<String, dynamic> payload) onNewMessage,
     void Function(String id)? onDeleteMessage,
+    void Function(Map<String, dynamic> payload)? onMessageSeen,
   }) {
     disconnect();
     final origin = _origin;
@@ -83,11 +84,13 @@ class ChatService {
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
+          .enableForceNew()
           .build(),
     );
     _socket!.onConnect((_) {
       _socket!.emit('join', {'groupId': groupId});
     });
+
     _socket!.on('chat:new', (data) {
       try {
         if (data is Map<String, dynamic>) {
@@ -97,6 +100,7 @@ class ChatService {
         }
       } catch (_) {}
     });
+
     _socket!.on('chat:delete', (data) {
       try {
         final id = (data is Map && data['_id'] != null)
@@ -107,7 +111,29 @@ class ChatService {
         }
       } catch (_) {}
     });
+
+    if (onMessageSeen != null) {
+      _socket!.on('chat:seen', (data) {
+        try {
+          if (data is Map<String, dynamic>) {
+            onMessageSeen(data);
+          } else if (data is Map) {
+            onMessageSeen(Map<String, dynamic>.from(data));
+          }
+        } catch (_) {}
+      });
+    }
     _socket!.connect();
+  }
+
+  void emitSeen(String groupId, String messageId, String userId) {
+    if (_socket != null) {
+      _socket!.emit('chat:seen', {
+        'groupId': groupId,
+        'messageId': messageId,
+        'userId': userId,
+      });
+    }
   }
 
   void disconnect() {

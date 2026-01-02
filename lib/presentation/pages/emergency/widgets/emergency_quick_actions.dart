@@ -72,8 +72,7 @@ class QuickActionsButtons extends StatelessWidget {
                 icon: Icons.share_location_rounded,
                 title: sosActive ? "Emergency" : "Share",
                 subtitle: sosActive ? "Location" : "Location",
-                accentColor:
-                    sosActive ? Colors.red.shade300 : kSoftMint,
+                accentColor: sosActive ? Colors.red.shade300 : kSoftMint,
                 isLoading: isSending,
               ),
             ),
@@ -111,7 +110,6 @@ class _NatureActionButtonState extends State<_NatureActionButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  bool _isPressed = false;
 
   @override
   void initState() {
@@ -133,18 +131,15 @@ class _NatureActionButtonState extends State<_NatureActionButton>
   }
 
   void _handleTapDown(TapDownDetails details) {
-    setState(() => _isPressed = true);
     _controller.forward();
   }
 
   void _handleTapUp(TapUpDetails details) {
-    setState(() => _isPressed = false);
     _controller.reverse();
     widget.onPressed();
   }
 
   void _handleTapCancel() {
-    setState(() => _isPressed = false);
     _controller.reverse();
   }
 

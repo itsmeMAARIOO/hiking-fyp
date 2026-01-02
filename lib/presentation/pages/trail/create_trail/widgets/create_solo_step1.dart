@@ -35,31 +35,6 @@ class CreateSoloStep1 extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
 
-          // Title & Subtitle
-          const Text(
-            "Name Your Adventure",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: kDeepForest,
-              letterSpacing: -0.5,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            "What will you call this hike?",
-            style: TextStyle(
-              fontSize: 15,
-              color: kDeepForest.withOpacity(0.6),
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
           // Trail name
           Container(
             decoration: BoxDecoration(
@@ -170,7 +145,7 @@ class CreateSoloStep1 extends StatelessWidget {
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 16,
+                  vertical: 14,
                   horizontal: 20,
                 ),
               ),

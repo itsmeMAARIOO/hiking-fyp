@@ -92,9 +92,8 @@ router.post("/:groupId/images", upload.single("image"), async (req, res) => {
   }
 });
 
-export default router;
 
-// DELETE a message (image or text) by id with ownership check
+// DELETE a image by id 
 router.delete('/:groupId/messages/:id', async (req, res) => {
   try {
     const { groupId, id } = req.params;
@@ -111,7 +110,7 @@ router.delete('/:groupId/messages/:id', async (req, res) => {
       return res.status(403).json({ message: 'Not allowed to delete this message' });
     }
 
-    // Attempt to delete Cloudinary asset if present
+    // delete Cloudinary asset if present
     if (msg.publicId) {
       try {
         await cloudinary.uploader.destroy(msg.publicId);
@@ -131,3 +130,5 @@ router.delete('/:groupId/messages/:id', async (req, res) => {
     res.status(500).json({ message: 'Failed to delete message' });
   }
 });
+
+export default router;
