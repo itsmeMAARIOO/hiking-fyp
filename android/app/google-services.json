@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "557709030517",
+    "project_id": "trailguard-c3028",
+    "storage_bucket": "trailguard-c3028.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:557709030517:android:34c28600b0e3b4e6f7f43c",
+        "android_client_info": {
+          "package_name": "com.example.hikingapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "557709030517-u55t1mp9qhlk2vsgkch0foa9bk5ucvvf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hikingapp",
+            "certificate_hash": "bc572e295dc05801f0f364aac70668a674d96911"
+          }
+        },
+        {
+          "client_id": "557709030517-tq6a90j36no5slu8tbfc7aacntj86hop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC4_8Em0oXuQs5ebP_HHFh3jUFQtaYkw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "557709030517-tq6a90j36no5slu8tbfc7aacntj86hop.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

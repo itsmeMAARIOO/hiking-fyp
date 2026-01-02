@@ -83,10 +83,7 @@ class _HealthCardPageState extends State<HealthCardPage> {
     if (!isOnline) {
       return Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           margin: const EdgeInsets.symmetric(horizontal: 24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -122,11 +119,7 @@ class _HealthCardPageState extends State<HealthCardPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: const [
-                    Icon(
-                      Icons.wifi_off_rounded,
-                      color: kDeepForest,
-                      size: 24,
-                    ),
+                    Icon(Icons.wifi_off_rounded, color: kDeepForest, size: 24),
                     SizedBox(width: 10),
                     Text(
                       'No Connection',
@@ -330,7 +323,6 @@ class _HealthCardPageState extends State<HealthCardPage> {
                   final cn = (m['name'] ?? '').toString();
                   final ce = (m['email'] ?? '').toString();
                   final cp = (m['phone'] ?? '').toString();
-                  final share = ((m['share'] ?? false).toString() == 'true');
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
@@ -481,21 +473,6 @@ class _HealthCardPageState extends State<HealthCardPage> {
     );
   }
 
-  List<Widget> _buildAllergyChips(dynamic allergies) {
-    final list = <String>[];
-    if (allergies is List) {
-      for (final a in allergies) {
-        list.add(a.toString());
-      }
-    } else if (allergies is String && allergies.isNotEmpty) {
-      list.add(allergies);
-    }
-    if (list.isEmpty) {
-      return [_chip('No allergies', color: Colors.grey.shade300)];
-    }
-    return list.map((e) => _chip(e)).toList();
-  }
-
   String _formatAllergies(dynamic allergies) {
     if (allergies == null) return 'None';
     if (allergies is String) {
@@ -525,25 +502,5 @@ class _HealthCardPageState extends State<HealthCardPage> {
     }
     // If it's an asset path string
     return AssetImage(path);
-  }
-
-  Widget _chip(String text, {Color? color}) {
-    return Container(
-      margin: const EdgeInsets.only(right: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: (color ?? kSoftMint.withOpacity(0.28)),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kMediumSage.withOpacity(0.4)),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: kDeepForest,
-        ),
-      ),
-    );
   }
 }

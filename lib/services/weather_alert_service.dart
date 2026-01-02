@@ -75,7 +75,7 @@ class WeatherAlertService {
     }
 
     try {
-      final weather = await WeatherService().fetchWeatherByCoords(lat!, lon!);
+      final weather = await WeatherService().fetchWeatherByCoords(lat, lon);
       if (weather == null) return;
       final cond = weather.condition.toLowerCase();
       final isSunny = cond.contains('sunny') || cond.contains('clear');

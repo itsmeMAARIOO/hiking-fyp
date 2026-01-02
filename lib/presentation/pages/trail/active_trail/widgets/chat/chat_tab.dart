@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hikingapp/data/models/group_model.dart';
 import 'package:hikingapp/services/chat_service.dart';
-// import 'package:hikingapp/services/notification_service.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:hikingapp/providers/trail_provider.dart';
@@ -13,6 +12,7 @@ class ChatTab extends StatefulWidget {
   final String groupName;
   final String currentUserId;
   final String currentUserName;
+  final bool isVisible;
 
   const ChatTab({
     super.key,
@@ -20,45 +20,36 @@ class ChatTab extends StatefulWidget {
     required this.groupName,
     required this.currentUserId,
     required this.currentUserName,
+    this.isVisible = false,
   });
 
   @override
   State<ChatTab> createState() => _ChatTabState();
 }
 
-class _SenderAvatar extends StatelessWidget {
-  final String? url;
-  final String name;
-  const _SenderAvatar({required this.url, required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasNetworkAvatar =
-        url != null && url!.isNotEmpty && url!.startsWith('http');
-    final String initial = name.isNotEmpty ? name.trim()[0].toUpperCase() : '?';
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: hasNetworkAvatar ? null : kSoftMint,
-      backgroundImage: hasNetworkAvatar ? NetworkImage(url!) : null,
-      child: hasNetworkAvatar
-          ? null
-          : Text(
-              initial,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: kDeepTeal,
-              ),
-            ),
-    );
-  }
-}
-
 class _ChatTabState extends State<ChatTab> {
   final ChatService _chat = ChatService();
   final List<Map<String, dynamic>> _messages = [];
+  final Map<String, String> _userSeen = {}; // userId -> messageId
+  final Set<String> _pendingSeen = {};
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _loading = false;
+
+  @override
+  void didUpdateWidget(ChatTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isVisible && widget.isVisible) {
+      _flushPendingSeen();
+    }
+  }
+
+  void _flushPendingSeen() {
+    for (final id in _pendingSeen) {
+      _chat.emitSeen(widget.groupId, id, widget.currentUserId);
+    }
+    _pendingSeen.clear();
+  }
 
   @override
   void initState() {
@@ -72,6 +63,26 @@ class _ChatTabState extends State<ChatTab> {
         if (!_messages.any((m) => m['_id'] == payload['_id'])) {
           setState(() => _messages.add(payload));
           _deferredScrollToBottom();
+          // Emit seen for the new message if visible, else queue
+          final id = payload['_id']?.toString();
+          if (id != null) {
+            if (widget.isVisible) {
+              _chat.emitSeen(widget.groupId, id, widget.currentUserId);
+            } else {
+              _pendingSeen.add(id);
+            }
+          }
+        }
+      },
+      onMessageSeen: (payload) {
+        final uid = payload['userId']?.toString();
+        final mid = payload['messageId']?.toString();
+        if (uid != null && mid != null) {
+          if (mounted) {
+            setState(() {
+              _userSeen[uid] = mid;
+            });
+          }
         }
       },
     );
@@ -81,6 +92,31 @@ class _ChatTabState extends State<ChatTab> {
     setState(() => _loading = true);
     try {
       final msgs = await _chat.fetchMessages(widget.groupId);
+
+      // Populate seen status from history
+      final newSeen = <String, String>{};
+      for (final m in msgs) {
+        if (m is Map) {
+          final mid = m['_id']?.toString();
+          final seenBy = m['seenBy'];
+          if (mid != null && seenBy is List) {
+            for (final s in seenBy) {
+              if (s is Map) {
+                final uid = s['userId']?.toString();
+                if (uid != null && uid != widget.currentUserId) {
+                  newSeen[uid] = mid;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _userSeen.addAll(newSeen);
+        });
+      }
+
       final textOnly = msgs.where(
         (m) => ((m['imageUrl'] ?? '').toString().isEmpty),
       );
@@ -88,11 +124,22 @@ class _ChatTabState extends State<ChatTab> {
         () =>
             _messages.addAll(textOnly.map((e) => Map<String, dynamic>.from(e))),
       );
+      if (_messages.isNotEmpty) {
+        final last = _messages.last;
+        final id = last['_id']?.toString();
+        if (id != null) {
+          if (widget.isVisible) {
+            _chat.emitSeen(widget.groupId, id, widget.currentUserId);
+          } else {
+            _pendingSeen.add(id);
+          }
+        }
+      }
       _deferredScrollToBottom();
     } catch (e) {
       // ignore
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -150,9 +197,12 @@ class _ChatTabState extends State<ChatTab> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       performScroll();
       // Re-check once more after a short delay in case list grows further
-      Future.delayed(const Duration(milliseconds: 100), performScroll);
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) performScroll();
+      });
     });
   }
 
@@ -242,10 +292,32 @@ class _ChatTabState extends State<ChatTab> {
     return avatarUrl;
   }
 
+  Widget _buildSeenAvatars(Map<String, dynamic> msg, bool isMine) {
+    final msgId = msg['_id']?.toString();
+    if (msgId == null) return const SizedBox.shrink();
+
+    final viewers = _userSeen.entries
+        .where((e) => e.value == msgId && e.key != widget.currentUserId)
+        .map((e) => e.key)
+        .toList();
+
+    if (viewers.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisAlignment: isMine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        children: viewers.map((uid) => _TinyAvatar(userId: uid)).toList(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -325,6 +397,7 @@ class _ChatTabState extends State<ChatTab> {
                                       ),
                                     ),
                                   _ChatBubble(msg: msg, isMine: isMine),
+                                  _buildSeenAvatars(msg, isMine),
                                 ],
                               ),
                             ),
@@ -374,6 +447,133 @@ class _ChatTabState extends State<ChatTab> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SenderAvatar extends StatelessWidget {
+  final String? url;
+  final String name;
+  const _SenderAvatar({required this.url, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasNetworkAvatar =
+        url != null && url!.isNotEmpty && url!.startsWith('http');
+    final String initial = name.isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: hasNetworkAvatar ? null : kSoftMint,
+      backgroundImage: hasNetworkAvatar ? NetworkImage(url!) : null,
+      child: hasNetworkAvatar
+          ? null
+          : Text(
+              initial,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: kDeepTeal,
+              ),
+            ),
+    );
+  }
+}
+
+class _TinyAvatar extends StatelessWidget {
+  final String userId;
+  const _TinyAvatar({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    String? avatarUrl;
+    String name = '?';
+
+    try {
+      final gp = Provider.of<GroupProvider>(context, listen: false);
+      // Check nearby members
+      final m1 = gp.nearbyMembers.firstWhere(
+        (m) => m.userId == userId,
+        orElse: () => GroupMember(
+          userId: '',
+          name: '',
+          latitude: 0,
+          longitude: 0,
+          role: '',
+          status: '',
+          lastUpdated: DateTime.now(),
+        ),
+      );
+      if (m1.userId.isNotEmpty) {
+        if (m1.profileImage != null && m1.profileImage!.isNotEmpty) {
+          avatarUrl = m1.profileImage;
+        }
+        name = m1.name;
+      }
+
+      // Check active group members if not found
+      if (avatarUrl == null && gp.activeGroup != null) {
+        final dynamic members = gp.activeGroup!['members'];
+        if (members is List) {
+          for (final m in members) {
+            String? mid;
+            String? mName;
+            String? mAvatar;
+            if (m is Map<String, dynamic>) {
+              final dynamic mUserId = m['userId'];
+              final dynamic directName = m['name']; // sometimes name is direct
+              if (directName is String) mName = directName;
+
+              if (mUserId is String) {
+                mid = mUserId;
+              } else if (mUserId is Map<String, dynamic>) {
+                final dynamic idObj = mUserId['_id'] ?? mUserId['id'];
+                if (idObj is String) mid = idObj;
+                if (idObj is Object) mid = idObj.toString();
+                final dynamic upi = mUserId['profileImage'];
+                if (upi is String && upi.isNotEmpty) mAvatar = upi;
+                final dynamic uName = mUserId['name'];
+                if (uName is String && uName.isNotEmpty) mName = uName;
+              }
+              // Also check direct profileImage
+              final dynamic directPi = m['profileImage'];
+              if (mAvatar == null &&
+                  directPi is String &&
+                  directPi.isNotEmpty) {
+                mAvatar = directPi;
+              }
+              if (mid == userId) {
+                if (mAvatar != null && mAvatar.isNotEmpty) avatarUrl = mAvatar;
+                if (mName != null) name = mName;
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    final hasNetworkAvatar =
+        avatarUrl != null &&
+        avatarUrl.isNotEmpty &&
+        avatarUrl.startsWith('http');
+    final String initial = name.isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: CircleAvatar(
+        radius: 8,
+        backgroundColor: hasNetworkAvatar ? Colors.transparent : kSoftMint,
+        backgroundImage: hasNetworkAvatar ? NetworkImage(avatarUrl) : null,
+        child: hasNetworkAvatar
+            ? null
+            : Text(
+                initial,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 8,
+                  color: kDeepTeal,
+                ),
+              ),
       ),
     );
   }

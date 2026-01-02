@@ -10,8 +10,6 @@ import 'package:provider/provider.dart';
 
 // --- LOCAL THEME CONSTANTS ---
 // Defined here to ensure the specific "Mint & Air" look works instantly
-const Color kDarkSlate = Color(0xFF263238);
-const Color kSoftMint = Color(0xFFa0d5b9);
 
 class WeatherWidget extends StatefulWidget {
   const WeatherWidget({super.key});
@@ -386,7 +384,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: kDarkSlate,
+              color: kDeepTeal,
               letterSpacing: -0.5,
             ),
           ),
@@ -395,7 +393,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
             weatherCondition.description,
             style: TextStyle(
               fontSize: 14,
-              color: kDarkSlate.withOpacity(0.7),
+              color: kDeepTeal.withOpacity(0.7),
               height: 1.4,
               fontWeight: FontWeight.w500,
             ),
@@ -440,7 +438,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
               style: const TextStyle(
                 fontSize: 60,
                 fontWeight: FontWeight.w900,
-                color: kDarkSlate,
+                color: kDeepTeal,
                 height: 1,
               ),
             ),
@@ -451,7 +449,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: kDarkSlate.withOpacity(0.6),
+                  color: kDeepTeal.withOpacity(0.6),
                 ),
               ),
             ),
@@ -465,7 +463,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
           "/",
           style: TextStyle(
             fontSize: 30,
-            color: kDarkSlate.withOpacity(0.2),
+            color: kDeepTeal.withOpacity(0.2),
             fontWeight: FontWeight.w300,
           ),
         ),
@@ -480,7 +478,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
-              color: kDarkSlate.withOpacity(0.3), // Faded
+              color: kDeepTeal.withOpacity(0.3), // Faded
             ),
           ),
         ),

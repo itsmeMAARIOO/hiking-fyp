@@ -34,6 +34,18 @@ class NotificationService {
         showBadge: true,
       );
 
+  static const String _chatChannelId = 'chat_alerts';
+  static const AndroidNotificationChannel _androidChatChannel =
+      AndroidNotificationChannel(
+        _chatChannelId,
+        'Chat Messages',
+        description: 'New chat message notifications',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
+      );
+
   static Future<void> initialize() async {
     // Android init
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -66,6 +78,12 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(_androidInviteChannel);
+
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_androidChatChannel);
 
     // Request permissions where required
     if (!kIsWeb && Platform.isIOS) {
@@ -143,6 +161,35 @@ class NotificationService {
       DateTime.now().millisecondsSinceEpoch % 100000, // simple unique id
       title,
       body,
+      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+    );
+  }
+
+  static Future<void> chatNotification({
+    required String senderName,
+    required String message,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      _chatChannelId,
+      'Chat Messages',
+      channelDescription: 'New chat message notifications',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      category: AndroidNotificationCategory.message,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: true,
+      presentBadge: true,
+    );
+
+    await _plugin.show(
+      DateTime.now().millisecondsSinceEpoch % 100000,
+      senderName,
+      message,
       const NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
   }

@@ -6,6 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:hikingapp/config/api_config.dart';
 import 'package:hikingapp/data/models/group_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:hikingapp/services/notification_service.dart';
 
 /// Provider for managing group activities, locations, and member updates.
 class GroupProvider with ChangeNotifier {
@@ -20,6 +22,20 @@ class GroupProvider with ChangeNotifier {
   String? _lastError;
   bool _isUpdatingLocation = false;
   bool _isTrailMinimized = false;
+  IO.Socket? _socket;
+  String? _currentUserId;
+  bool _isChatVisible = false;
+  bool _hasUnreadMessages = false;
+
+  bool get hasUnreadMessages => _hasUnreadMessages;
+
+  void setChatVisible(bool visible) {
+    _isChatVisible = visible;
+    if (visible && _hasUnreadMessages) {
+      _hasUnreadMessages = false;
+      notifyListeners();
+    }
+  }
 
   // ----------------------------
   // ✅ Persisted trail stats (for minimize/restore)
@@ -85,6 +101,76 @@ class GroupProvider with ChangeNotifier {
     _lastUpdateTime = null;
     _wasTracking = true;
     notifyListeners();
+  }
+
+  // ----------------------------
+  // ✅ Socket Logic
+  // ----------------------------
+  String get _origin {
+    final base = ApiConfig.baseUrl;
+    return base.endsWith('/api') ? base.substring(0, base.length - 4) : base;
+  }
+
+  void _connectSocket(String groupId) {
+    if (_socket != null) return; // already connected
+
+    final origin = _origin;
+    _socket = IO.io(
+      origin,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .enableForceNew()
+          .build(),
+    );
+
+    _socket!.onConnect((_) {
+      debugPrint("🔌 Socket connected for GroupProvider");
+      _socket!.emit('join', {'groupId': groupId});
+    });
+
+    _socket!.on('group:time_update', (data) {
+      // Sync time from creator
+      if (data != null && data['seconds'] != null) {
+        final int s = data['seconds'];
+        // If current user NOT the creator, update time
+        if (_activeGroup != null && _currentUserId != null) {
+          final creatorId = _activeGroup!['createdBy']?.toString();
+          if (creatorId != _currentUserId) {
+            if ((_elapsedSeconds - s).abs() > 1) {
+              _elapsedSeconds = s;
+              notifyListeners();
+            }
+          }
+        }
+      }
+    });
+
+    _socket!.on('chat:new', (data) {
+      // pop notification if message received
+      if (!_isChatVisible && _currentUserId != null) {
+        if (data is Map) {
+          final uid = data['userId']?.toString();
+          if (uid != null && uid != _currentUserId) {
+            _hasUnreadMessages = true;
+            notifyListeners();
+            final sender = data['userName']?.toString() ?? 'User';
+            final body = data['text']?.toString() ?? 'Image';
+            NotificationService.chatNotification(
+              senderName: sender,
+              message: body,
+            );
+          }
+        }
+      }
+    });
+
+    _socket!.connect();
+  }
+
+  void _disconnectSocket() {
+    _socket?.dispose();
+    _socket = null;
   }
 
   // ----------------------------
@@ -337,6 +423,12 @@ class GroupProvider with ChangeNotifier {
     notifyListeners();
 
     debugPrint("🔄 Started location updates every 30s");
+
+    // Setup socket for group time sync
+    _currentUserId = userId;
+    if (!forSolo && groupId != null) {
+      _connectSocket(groupId);
+    }
   }
 
   // ----------------------------
@@ -346,6 +438,7 @@ class GroupProvider with ChangeNotifier {
     _locationTimer?.cancel();
     _locationTimer = null;
     _stopStatsTimer();
+    _disconnectSocket();
     _wasTracking = false; // mark paused tracking
     debugPrint("⏸️ Stopped location updates");
   }
@@ -462,7 +555,7 @@ class GroupProvider with ChangeNotifier {
   // ----------------------------
   // Add this method to your GroupProvider class
 
-  Future<void> fetchGroupById(String groupId) async {
+  Future<void> fetchGroupById(String groupId, {String? currentUserId}) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -476,6 +569,54 @@ class GroupProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _activeGroup = data['group'];
+
+        // Sync trail status if active
+        if (_activeGroup != null &&
+            _activeGroup!['activeTrail'] != null &&
+            _activeGroup!['activeTrail']['status'] == 'active') {
+          final active = _activeGroup!['activeTrail'];
+          if (active['startTime'] != null) {
+            final serverStart = DateTime.parse(active['startTime']).toUtc();
+            // Server stores time as MYT but in UTC container (+8h offset stored as UTC value)
+            // So we subtract 8 hours to get the real UTC start time
+            final realStart = serverStart.subtract(const Duration(hours: 8));
+            final now = DateTime.now().toUtc();
+            final diff = now.difference(realStart).inSeconds;
+            _elapsedSeconds = diff > 0 ? diff : 0;
+            _wasTracking = true;
+
+            // If we have userId, we can start updates/sockets immediately
+            if (currentUserId != null) {
+              // Find my name in members
+              String myName = 'User';
+              final members = _activeGroup!['members'] as List?;
+              if (members != null) {
+                final me = members.firstWhere((m) {
+                  final uid = m['userId'];
+                  if (uid is Map)
+                    return uid['_id'] == currentUserId ||
+                        uid['id'] == currentUserId;
+                  return uid == currentUserId;
+                }, orElse: () => null);
+                if (me != null) {
+                  // Try to extract name
+                  if (me['name'] != null)
+                    myName = me['name'];
+                  else if (me['userId'] is Map && me['userId']['name'] != null)
+                    myName = me['userId']['name'];
+                }
+              }
+
+              debugPrint("🚀 Auto-starting tracking for joined group");
+              startLocationUpdates(
+                groupId: _activeGroup!['_id'],
+                userId: currentUserId,
+                userName: myName,
+              );
+            }
+          }
+        }
+
         notifyListeners();
       } else {
         throw Exception('Failed to fetch group: ${response.statusCode}');
@@ -569,6 +710,18 @@ class GroupProvider with ChangeNotifier {
       _elapsedSeconds += 1;
       // keep last update time in sync for potential speed calc continuity
       _lastUpdateTime = DateTime.now();
+
+      // Emit time if creator
+      if (_socket != null && _activeGroup != null && _currentUserId != null) {
+        final creatorId = _activeGroup!['createdBy']?.toString();
+        if (creatorId == _currentUserId) {
+          _socket!.emit('group:time_update', {
+            'groupId': _activeGroup!['_id'],
+            'seconds': _elapsedSeconds,
+          });
+        }
+      }
+
       // Notify listeners so any UI (e.g., bubble or page) can reflect time
       notifyListeners();
     });

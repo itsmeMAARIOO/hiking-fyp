@@ -23,6 +23,7 @@ import 'package:hikingapp/presentation/pages/dashboard/widgets/weather_widget.da
 
 import 'package:hikingapp/providers/profile_provider.dart';
 import 'package:hikingapp/services/weather_alert_service.dart';
+import 'package:hikingapp/utils/snackbar_helper.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -325,7 +326,16 @@ class _DashboardPageContentState extends State<DashboardPageContent>
                           ],
                         ),
                         GestureDetector(
-                          onTap: _checkPendingInvitations,
+                          onTap: () {
+                            if (!dashboardProvider.isOnline) {
+                              SnackbarHelper.showError(
+                                'No internet Connection',
+                                'Please try again',
+                              );
+                              return;
+                            }
+                            _checkPendingInvitations();
+                          },
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(

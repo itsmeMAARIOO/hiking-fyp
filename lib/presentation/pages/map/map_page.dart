@@ -220,7 +220,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
     try {
       final lat = loc['latitude']!;
       final lon = loc['longitude']!;
-      // Use Google Places Nearby Search for "park" and keyword fallback like your original strategy.
+      // Use Google Places Nearby Search for "park"
       final params = <String, String>{
         'location': '$lat,$lon',
         'radius': '15000',
@@ -230,7 +230,7 @@ class _MapPageState extends State<MapPage> with SingleTickerProviderStateMixin {
       if (keyword != null && keyword.trim().isNotEmpty) {
         params['keyword'] = keyword;
       } else {
-        // default keywords to prefer hills / bukit etc
+        // default keywords to prefer hills / bukit
         params['keyword'] = 'bukit OR hill OR forest';
       }
 

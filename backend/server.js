@@ -17,6 +17,7 @@ import { Server as SocketIOServer } from "socket.io";
 import nodemailer from "nodemailer";
 import SoloTrail from "./models/SoloTrail.js";
 import User from "./models/User.js";
+import ChatMessage from "./models/ChatMessage.js";
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+// server.js
 // Start server with Socket.IO
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
@@ -69,13 +71,46 @@ const io = new SocketIOServer(server, {
 app.set("io", io);
 
 io.on("connection", (socket) => {
+
   console.log("🔌 Client connected:", socket.id);
+  
   socket.on("join", ({ groupId }) => {
     if (groupId) {
       socket.join(groupId);
       console.log(`👥 Socket ${socket.id} joined room ${groupId}`);
     }
   });
+
+  socket.on("chat:seen", async (data) => {
+    try {
+      const { groupId, messageId, userId } = data;
+      // Broadcast to others in the room
+      socket.to(groupId).emit("chat:seen", data);
+
+      // Update Persistence
+      if (messageId && userId) {
+        await ChatMessage.updateOne(
+          { _id: messageId, "seenBy.userId": { $ne: userId } },
+          { $push: { seenBy: { userId, seenAt: new Date() } } }
+        );
+      }
+    } catch (e) {
+      console.error("Error handling chat:seen:", e);
+    }
+  });
+
+  socket.on("group:time_update", (data) => {
+    try {
+      const { groupId, seconds } = data;
+      if (groupId && seconds !== undefined) {
+        // Broadcast time to everyone else in the group
+        socket.to(groupId).emit("group:time_update", { seconds });
+      }
+    } catch (e) {
+      console.error("Error handling group:time_update:", e);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("📴 Client disconnected:", socket.id);
   });

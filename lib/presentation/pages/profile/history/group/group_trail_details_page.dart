@@ -225,7 +225,9 @@ class _GroupTrailDetailsPageState extends State<GroupTrailDetailsPage>
     DateTime? start;
     DateTime? end;
     try {
-      if (startRaw is String) start = DateTime.parse(startRaw);
+      if (startRaw is String) {
+        start = DateTime.parse(startRaw).subtract(const Duration(hours: 8));
+      }
       if (endRaw is String) end = DateTime.parse(endRaw);
     } catch (_) {}
     final startStr = start != null

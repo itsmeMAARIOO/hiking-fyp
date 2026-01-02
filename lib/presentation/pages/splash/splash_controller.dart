@@ -1,11 +1,10 @@
 import 'package:get/get.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:hikingapp/config/routes.dart';
+import 'package:hikingapp/providers/auth_provider.dart';
+import 'package:hikingapp/providers/profile_provider.dart';
+import 'package:provider/provider.dart';
 
 class SplashController extends GetxController {
-  final storage = const FlutterSecureStorage();
-
   @override
   void onInit() {
     super.onInit();
@@ -15,27 +14,37 @@ class SplashController extends GetxController {
   Future<void> _checkLoginStatus() async {
     await Future.delayed(const Duration(seconds: 2)); // show splash for 2s
 
-    String? token = await storage.read(key: "authToken");
-
-    if (token != null) {
-      try {
-        final response = await http.get(
-          Uri.parse("http://10.0.2.2:3000/validate-token"), // your backend
-          headers: {"Authorization": "Bearer $token"},
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          if (data["valid"] == true) {
-            Get.offAllNamed("/dashboard"); // ✅ already logged in
-            return;
-          }
-        }
-      } catch (e) {
-        // ignore, fallback to login
-      }
+    if (Get.context == null) {
+      Get.offAllNamed(AppRoutes.login);
+      return;
     }
 
-    Get.offAllNamed("/login"); // ⛔ no valid token → go to login
+    try {
+      final authProvider = Provider.of<AuthProvider>(
+        Get.context!,
+        listen: false,
+      );
+      final isLoggedIn = await authProvider.tryAutoLogin();
+
+      if (isLoggedIn) {
+        // Sync ProfileProvider
+        final profileProvider = Provider.of<ProfileProvider>(
+          Get.context!,
+          listen: false,
+        );
+        profileProvider.setProfile({
+          'id': authProvider.userId,
+          'email': authProvider.userEmail,
+          'name': authProvider.userName,
+          'profileImage': authProvider.userData?['profileImage'],
+        });
+
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        Get.offAllNamed(AppRoutes.login);
+      }
+    } catch (e) {
+      Get.offAllNamed(AppRoutes.login);
+    }
   }
 }
