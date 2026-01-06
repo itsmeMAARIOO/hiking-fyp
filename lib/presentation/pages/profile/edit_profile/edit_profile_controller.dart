@@ -42,10 +42,10 @@ class EditProfileController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  // ✅ Fetch user data
+  // Fetch user data
   Future<void> fetchUserData() async {
     if (userId == null) {
-      debugPrint("⚠️ No userId provided.");
+      debugPrint("No userId provided.");
       return;
     }
 
@@ -89,17 +89,17 @@ class EditProfileController extends ChangeNotifier {
             ? data['profileImage']
             : null;
       } else {
-        debugPrint("❌ Failed to fetch user data: ${response.statusCode}");
+        debugPrint("Failed to fetch user data: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint("⚠️ Error fetching user data: $e");
+      debugPrint("Error fetching user data: $e");
     } finally {
       isLoading = false;
       safeNotify();
     }
   }
 
-  // ✅ Pick a new image
+  // Pick a new image
   Future<void> pickImage(ImagePicker picker) async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -109,7 +109,7 @@ class EditProfileController extends ChangeNotifier {
     }
   }
 
-  // ✅ Save updated profile
+  // Save updated profile
   // Returns the API response as Map<String, dynamic> or null on error
   Future<Map<String, dynamic>?> saveProfile() async {
     if (!formKey.currentState!.validate()) return null;
@@ -136,14 +136,19 @@ class EditProfileController extends ChangeNotifier {
       request.fields['email'] = emailController.text;
       request.fields['phone'] = phoneController.text;
       if (dobController.text.isNotEmpty) {
-        final iso = DateTime.tryParse(dobController.text)?.toIso8601String() ?? dobController.text;
+        final iso =
+            DateTime.tryParse(dobController.text)?.toIso8601String() ??
+            dobController.text;
         request.fields['dateOfBirth'] = iso;
       }
       if (gender != null) request.fields['gender'] = gender!;
       if (bloodType != null) request.fields['bloodType'] = bloodType!;
-      if (weightController.text.isNotEmpty) request.fields['weightKg'] = weightController.text;
-      if (heightController.text.isNotEmpty) request.fields['heightCm'] = heightController.text;
-      if (allergiesController.text.isNotEmpty) request.fields['allergies'] = allergiesController.text;
+      if (weightController.text.isNotEmpty)
+        request.fields['weightKg'] = weightController.text;
+      if (heightController.text.isNotEmpty)
+        request.fields['heightCm'] = heightController.text;
+      if (allergiesController.text.isNotEmpty)
+        request.fields['allergies'] = allergiesController.text;
       // Emergency contacts are updated via dedicated APIs
 
       if (selectedImage != null) {

@@ -48,28 +48,28 @@ class LoginController extends GetxController {
     try {
       isLoading.value = true;
 
-      // 🔥 Call backend API
+      // Call backend API
       final response = await AuthService.login(trimmedEmail, trimmedPassword);
 
       if (response.containsKey("id") &&
           response.containsKey("email") &&
           response["id"] != null) {
-        // ✅ Get AuthProvider
+        // Get AuthProvider
         final authProvider = Get.context!.read<AuthProvider>();
         authProvider.setUser({
           'id': response['id'],
           'email': response['email'],
           'name': response['name'] ?? 'User',
-          'profileImage': response['profileImage'], // ✅ Added here
+          'profileImage': response['profileImage'], // Added here
         });
 
-        // ✅ Get ProfileProvider
+        // Get ProfileProvider
         final profileProvider = Get.context!.read<ProfileProvider>();
         profileProvider.setProfile({
           'id': response['id'],
           'email': response['email'],
           'name': response['name'] ?? 'User',
-          'profileImage': response['profileImage'], // ✅ Added here
+          'profileImage': response['profileImage'], // Added here
         });
 
         SnackbarHelper.showSuccess(

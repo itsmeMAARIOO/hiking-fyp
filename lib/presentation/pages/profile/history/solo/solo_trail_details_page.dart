@@ -169,7 +169,9 @@ class _SoloTrailDetailsPageState extends State<SoloTrailDetailsPage> {
         ? DateFormat('d MMM yyyy, HH:mm').format(start.toLocal())
         : '-';
     final endStr = end != null
-        ? DateFormat('d MMM yyyy, HH:mm').format(end.toLocal())
+        ? DateFormat(
+            'd MMM yyyy, HH:mm',
+          ).format(end.subtract(const Duration(hours: 8)).toLocal())
         : '-';
 
     final trailDescription = (_trail?['trailDescription'] ?? '').toString();

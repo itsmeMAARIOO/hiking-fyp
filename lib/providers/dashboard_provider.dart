@@ -59,7 +59,7 @@ class DashboardProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('❌ Failed to load last check-in: $e');
+      print('Failed to load last check-in: $e');
     }
   }
 
@@ -79,7 +79,7 @@ class DashboardProvider extends ChangeNotifier {
       final result = await _connectivity.checkConnectivity();
       _updateConnectionStatus(result);
     } catch (e) {
-      print('❌ Failed to initialize connectivity: $e');
+      print('Failed to initialize connectivity: $e');
     }
   }
 
@@ -113,7 +113,7 @@ class DashboardProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('❌ Failed to fetch last check-in: $e');
+      print('Failed to fetch last check-in: $e');
     }
   }
 

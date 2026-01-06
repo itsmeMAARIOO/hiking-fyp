@@ -4,7 +4,6 @@ require("dotenv").config();
 const { MongoClient } = require("mongodb");
 
 const guides = [
-  // --- LIFE THREATENING ---
   {
     title: "CPR (Adults)",
     content: [
@@ -49,8 +48,6 @@ const guides = [
       "Evacuate immediately. Symptoms can return after 15-20 mins.",
     ],
   },
-
-  // --- ENVIRONMENTAL ---
   {
     title: "Heat Stroke",
     content: [
@@ -84,8 +81,6 @@ const guides = [
       "Mark the edge of swelling with a pen and note the time.",
     ],
   },
-
-  // --- TRAUMA & INJURY ---
   {
     title: "Fractures & Sprains",
     content: [
@@ -118,8 +113,6 @@ const guides = [
       "Keep the patient warm to prevent shock.",
     ],
   },
-
-  // --- COMMON HIKING ISSUES ---
   {
     title: "Blisters",
     content: [
@@ -160,13 +153,10 @@ async function seed() {
     const db = client.db("hikingapp");
     const collection = db.collection("guides");
 
-    console.log("Clearing existing guides...");
     await collection.deleteMany({});
 
-    console.log("Inserting new guides...");
     await collection.insertMany(guides);
 
-    console.log("Seed completed successfully!");
   } catch (err) {
     console.error("Error seeding:", err);
   } finally {

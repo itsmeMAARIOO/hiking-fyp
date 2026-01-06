@@ -462,10 +462,12 @@ class _ActiveTrailPageState extends State<ActiveTrailPage>
             onSelect: (index) {
               setState(() => _selectedTab = index);
               provider.setChatVisible(index == 1);
+              provider.setLibraryVisible(index == 2);
             },
             showChat: !_isSolo,
             showLibrary: !_isSolo,
             hasUnread: provider.hasUnreadMessages,
+            hasUnreadImages: provider.hasUnreadImages,
           ),
 
           const SizedBox(height: 12),

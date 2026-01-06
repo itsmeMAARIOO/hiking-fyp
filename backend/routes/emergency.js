@@ -80,7 +80,7 @@ router.post("/share/start", async (req, res) => {
         await Promise.all(mailPromises);
         emailSent = true;
       } catch (e) {
-        console.error("❌ Email send error:", e);
+        console.error("Email send error:", e);
         emailError = (e && e.message) || "Email send failed";
       }
     }

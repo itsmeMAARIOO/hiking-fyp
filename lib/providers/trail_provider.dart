@@ -25,9 +25,12 @@ class GroupProvider with ChangeNotifier {
   IO.Socket? _socket;
   String? _currentUserId;
   bool _isChatVisible = false;
+  bool _isLibraryVisible = false;
   bool _hasUnreadMessages = false;
+  bool _hasUnreadImages = false;
 
   bool get hasUnreadMessages => _hasUnreadMessages;
+  bool get hasUnreadImages => _hasUnreadImages;
 
   void setChatVisible(bool visible) {
     _isChatVisible = visible;
@@ -37,8 +40,16 @@ class GroupProvider with ChangeNotifier {
     }
   }
 
+  void setLibraryVisible(bool visible) {
+    _isLibraryVisible = visible;
+    if (visible && _hasUnreadImages) {
+      _hasUnreadImages = false;
+      notifyListeners();
+    }
+  }
+
   // ----------------------------
-  // ✅ Persisted trail stats (for minimize/restore)
+  // Persisted trail stats (for minimize/restore)
   // ----------------------------
   int _elapsedSeconds = 0; // total elapsed tracking time
   double _totalDistanceKm = 0.0; // accumulated distance
@@ -64,7 +75,7 @@ class GroupProvider with ChangeNotifier {
   bool get wasTracking => _wasTracking;
 
   // ----------------------------
-  // ✅ Minimize / restore trail state
+  // Minimize / restore trail state
   // ----------------------------
   void setTrailMinimized(bool minimized) {
     _isTrailMinimized = minimized;
@@ -104,7 +115,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Socket Logic
+  // Socket Logic
   // ----------------------------
   String get _origin {
     final base = ApiConfig.baseUrl;
@@ -125,7 +136,7 @@ class GroupProvider with ChangeNotifier {
     );
 
     _socket!.onConnect((_) {
-      debugPrint("🔌 Socket connected for GroupProvider");
+      debugPrint("Socket connected for GroupProvider");
       _socket!.emit('join', {'groupId': groupId});
     });
 
@@ -148,18 +159,36 @@ class GroupProvider with ChangeNotifier {
 
     _socket!.on('chat:new', (data) {
       // pop notification if message received
-      if (!_isChatVisible && _currentUserId != null) {
-        if (data is Map) {
-          final uid = data['userId']?.toString();
-          if (uid != null && uid != _currentUserId) {
-            _hasUnreadMessages = true;
-            notifyListeners();
-            final sender = data['userName']?.toString() ?? 'User';
-            final body = data['text']?.toString() ?? 'Image';
-            NotificationService.chatNotification(
-              senderName: sender,
-              message: body,
-            );
+      if (_currentUserId != null && data is Map) {
+        final uid = data['userId']?.toString();
+        if (uid != null && uid != _currentUserId) {
+          final text = data['text']?.toString();
+          // Assume valid message without text is an image
+          final isImage = text == null || text.isEmpty;
+
+          if (isImage) {
+            if (!_isLibraryVisible) {
+              _hasUnreadImages = true;
+              notifyListeners();
+
+              final sender = data['userName']?.toString() ?? 'User';
+              NotificationService.chatNotification(
+                senderName: sender,
+                message: 'Sent an image',
+              );
+            }
+          } else {
+            if (!_isChatVisible) {
+              _hasUnreadMessages = true;
+              notifyListeners();
+
+              final sender = data['userName']?.toString() ?? 'User';
+              final body = text ?? 'Message';
+              NotificationService.chatNotification(
+                senderName: sender,
+                message: body,
+              );
+            }
           }
         }
       }
@@ -174,7 +203,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Utility: Get current GPS position safely
+  // Utility: Get current GPS position safely
   // ----------------------------
   Future<Position?> _getCurrentPosition() async {
     try {
@@ -203,13 +232,13 @@ class GroupProvider with ChangeNotifier {
       );
     } catch (e) {
       _lastError = "Error getting location: $e";
-      debugPrint("❌ Location error: $e");
+      debugPrint("Location error: $e");
       return null;
     }
   }
 
   // ----------------------------
-  // ✅ Create a new group
+  // Create a new group
   // ----------------------------
   Future<void> createGroup({
     required String groupName,
@@ -256,10 +285,10 @@ class GroupProvider with ChangeNotifier {
         // Ensure fresh stats for a new group session
         clearTrailStats();
         _lastError = null;
-        debugPrint("✅ Group created: ${_activeGroup!['groupName']}");
+        debugPrint("Group created: ${_activeGroup!['groupName']}");
       } else {
         _lastError = "Failed to create group (${response.statusCode})";
-        debugPrint("❌ Failed to create group: ${response.body}");
+        debugPrint("Failed to create group: ${response.body}");
       }
     } catch (e) {
       _lastError = "Network error: $e";
@@ -271,7 +300,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Update member location
+  // Update member location
   // ----------------------------
   Future<void> updateMyLocation({
     required String groupId,
@@ -284,7 +313,7 @@ class GroupProvider with ChangeNotifier {
     final pos = await _getCurrentPosition();
     if (pos == null) {
       _isUpdatingLocation = false;
-      debugPrint("⚠️ Location unavailable");
+      debugPrint("Location unavailable");
       notifyListeners();
       return;
     }
@@ -307,7 +336,7 @@ class GroupProvider with ChangeNotifier {
         _activeGroup = data['group'];
         _lastError = null;
         debugPrint(
-          "📍 Updated location:  $userName, ${pos.latitude}, ${pos.longitude}",
+          "Updated location:  $userName, ${pos.latitude}, ${pos.longitude}",
         );
 
         // Fetch populated group so members include user profile images
@@ -335,7 +364,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Update solo live location
+  // Update solo live location
   // ----------------------------
   Future<void> _updateSoloLocation({
     required String userId,
@@ -349,7 +378,7 @@ class GroupProvider with ChangeNotifier {
     final pos = await _getCurrentPosition();
     if (pos == null) {
       _isUpdatingLocation = false;
-      debugPrint("⚠️ Location unavailable");
+      debugPrint("Location unavailable");
       notifyListeners();
       return;
     }
@@ -370,7 +399,7 @@ class GroupProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         _lastError = null;
         debugPrint(
-          "🏃‍♂️ Solo updated: $userName, ${pos.latitude}, ${pos.longitude}",
+          "Solo updated: $userName, ${pos.latitude}, ${pos.longitude}",
         );
       } else {
         _lastError = "Failed to update solo location (${response.statusCode})";
@@ -384,7 +413,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Start auto location updates
+  // Start auto location updates
   // ----------------------------
   void startLocationUpdates({
     String? groupId,
@@ -422,7 +451,7 @@ class GroupProvider with ChangeNotifier {
     _wasTracking = true; // mark tracking active
     notifyListeners();
 
-    debugPrint("🔄 Started location updates every 30s");
+    debugPrint("Started location updates every 30s");
 
     // Setup socket for group time sync
     _currentUserId = userId;
@@ -432,7 +461,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Stop location updates
+  // Stop location updates
   // ----------------------------
   void stopLocationUpdates() {
     _locationTimer?.cancel();
@@ -440,11 +469,11 @@ class GroupProvider with ChangeNotifier {
     _stopStatsTimer();
     _disconnectSocket();
     _wasTracking = false; // mark paused tracking
-    debugPrint("⏸️ Stopped location updates");
+    debugPrint("Stopped location updates");
   }
 
   // ----------------------------
-  // ✅ Complete solo trail
+  // Complete solo trail
   // ----------------------------
   Future<void> completeSoloTrail({
     required String userId,
@@ -464,20 +493,20 @@ class GroupProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         _lastError = null;
-        debugPrint("✅ Solo trail completed and saved");
+        debugPrint("Solo trail completed and saved");
       } else {
         _lastError = "Failed to complete solo trail (${response.statusCode})";
-        debugPrint("❌ Failed to save solo trail: ${response.body}");
+        debugPrint("Failed to save solo trail: ${response.body}");
       }
     } catch (e) {
       _lastError = "Network error while saving solo trail: $e";
-      debugPrint("❌ Error saving solo trail: $e");
+      debugPrint("Error saving solo trail: $e");
     }
     notifyListeners();
   }
 
   // ----------------------------
-  // ✅ Fetch nearby hikers
+  // Fetch nearby hikers
   // ----------------------------
   Future<void> fetchNearbyMembers({String? excludeUserId}) async {
     final pos = await _getCurrentPosition();
@@ -493,7 +522,7 @@ class GroupProvider with ChangeNotifier {
         body: jsonEncode({
           'latitude': pos.latitude,
           'longitude': pos.longitude,
-          'radius': 1.5,
+          'radius': 0.2,
           'excludeUserId': excludeUserId,
         }),
       );
@@ -505,7 +534,7 @@ class GroupProvider with ChangeNotifier {
             .map((m) => GroupMember.fromJson(m))
             .toList(growable: false);
         _lastError = null;
-        debugPrint("👣 Found ${_nearbyMembers.length} nearby hikers");
+        debugPrint("Found ${_nearbyMembers.length} nearby hikers");
       } else {
         _lastError = "Failed to fetch nearby hikers";
       }
@@ -517,7 +546,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Leave group safely
+  // Leave group safely
   // ----------------------------
   Future<void> leaveGroup(String userId) async {
     if (_activeGroup == null) return;
@@ -538,7 +567,7 @@ class GroupProvider with ChangeNotifier {
         _nearbyMembers = [];
         clearTrailStats();
         _lastError = null;
-        debugPrint("👋 Left group successfully");
+        debugPrint("Left group successfully");
       } else {
         _lastError = "Failed to leave group";
       }
@@ -551,10 +580,8 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ fetch group by id for invited user
+  // fetch group by id for invited user
   // ----------------------------
-  // Add this method to your GroupProvider class
-
   Future<void> fetchGroupById(String groupId, {String? currentUserId}) async {
     try {
       _isLoading = true;
@@ -577,17 +604,16 @@ class GroupProvider with ChangeNotifier {
           final active = _activeGroup!['activeTrail'];
           if (active['startTime'] != null) {
             final serverStart = DateTime.parse(active['startTime']).toUtc();
-            // Server stores time as MYT but in UTC container (+8h offset stored as UTC value)
-            // So we subtract 8 hours to get the real UTC start time
+            // Server stores time as MYT but in UTC container
             final realStart = serverStart.subtract(const Duration(hours: 8));
             final now = DateTime.now().toUtc();
             final diff = now.difference(realStart).inSeconds;
             _elapsedSeconds = diff > 0 ? diff : 0;
             _wasTracking = true;
 
-            // If we have userId, we can start updates/sockets immediately
+            // If have userId, we can start updates/sockets immediately
             if (currentUserId != null) {
-              // Find my name in members
+              // Find name in members
               String myName = 'User';
               final members = _activeGroup!['members'] as List?;
               if (members != null) {
@@ -607,7 +633,7 @@ class GroupProvider with ChangeNotifier {
                 }
               }
 
-              debugPrint("🚀 Auto-starting tracking for joined group");
+              debugPrint("Auto-starting tracking for joined group");
               startLocationUpdates(
                 groupId: _activeGroup!['_id'],
                 userId: currentUserId,
@@ -631,7 +657,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ End trail (creator only - ends for all members)
+  // End trail (creator only - ends for all members)
   // ----------------------------
   Future<bool> endTrail(String userId) async {
     if (_activeGroup == null) {
@@ -643,7 +669,7 @@ class GroupProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint("🔄 Attempting to end trail...");
+      debugPrint("Attempting to end trail...");
       debugPrint("   Group ID: ${_activeGroup!['_id']}");
       debugPrint("   User ID: $userId");
 
@@ -664,21 +690,21 @@ class GroupProvider with ChangeNotifier {
         _nearbyMembers = [];
         clearTrailStats();
         _lastError = null;
-        debugPrint("🏁 Trail completed successfully for all members");
+        debugPrint("Trail completed successfully for all members");
         return true;
       } else if (response.statusCode == 403) {
         _lastError = "Only the creator can end the trail";
-        debugPrint("❌ Not authorized to end trail");
+        debugPrint("Not authorized to end trail");
         return false;
       } else {
         final errorData = jsonDecode(response.body);
         _lastError = errorData['error'] ?? "Failed to end trail";
-        debugPrint("❌ Failed to end trail: $_lastError");
+        debugPrint("Failed to end trail: $_lastError");
         return false;
       }
     } catch (e) {
       _lastError = "Network error: $e";
-      debugPrint("❌ Exception while ending trail: $e");
+      debugPrint("Exception while ending trail: $e");
       return false;
     } finally {
       _isLoading = false;
@@ -687,7 +713,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Misc utilities
+  // Misc utilities
   // ----------------------------
   void clearError() {
     _lastError = null;
@@ -702,7 +728,7 @@ class GroupProvider with ChangeNotifier {
   }
 
   // ----------------------------
-  // ✅ Internal: stats timer to keep elapsed time running in background
+  // Internal: stats timer to keep elapsed time running in background
   // ----------------------------
   void _startStatsTimer() {
     _statsTimer?.cancel();
@@ -725,12 +751,12 @@ class GroupProvider with ChangeNotifier {
       // Notify listeners so any UI (e.g., bubble or page) can reflect time
       notifyListeners();
     });
-    debugPrint("⏱️ Started stats timer");
+    debugPrint("Started stats timer");
   }
 
   void _stopStatsTimer() {
     _statsTimer?.cancel();
     _statsTimer = null;
-    debugPrint("⏱️ Stopped stats timer");
+    debugPrint("Stopped stats timer");
   }
 }

@@ -1,12 +1,11 @@
 import express from "express";
-import CheckIn from "../models/Checkin.js";
+import CheckIn from "../models/CheckIn.js";
 
 const router = express.Router();
 
-// ✅ Create or Update Check-In
+// Create or Update Check-In
 router.post("/", async (req, res) => {
   try {
-    console.log("📥 Received body:", req.body);
     const { userId, checkinTime, lastCheckinTime, latitude, longitude } = req.body;
 
     // If userId is missing, stop
@@ -14,7 +13,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "userId is required" });
     }
 
-    // ✅ Find existing check-in and update it
+    // Find existing check-in and update it
     const updatedCheckIn = await CheckIn.findOneAndUpdate(
       { userId }, // filter by userId
       {
@@ -26,17 +25,16 @@ router.post("/", async (req, res) => {
       }
     );
 
-    console.log("✅ Check-in saved/updated:", updatedCheckIn);
     res
       .status(200)
       .json({ message: "Check-in saved or updated!", data: updatedCheckIn });
   } catch (err) {
-    console.error("❌ Error saving check-in:", err);
+    console.error("Error saving check-in:", err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// ✅ Fetch latest check-in by userId
+// Fetch latest check-in by userId
 router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;

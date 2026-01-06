@@ -100,7 +100,7 @@ class MapProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------
-  // ✅ Solo trail minimize support (persistent stats)
+  // Solo trail minimize support (persistent stats)
   // ---------------------------------------------
   bool _isSoloTrailMinimized = false;
   int _soloElapsedSeconds = 0;

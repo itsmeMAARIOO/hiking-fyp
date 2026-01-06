@@ -52,7 +52,7 @@ class FallDetectionService {
         }
       } catch (e) {
         if (enableDebug) {
-          SnackbarHelper.showError('Fall Detection', '❌ Model run error: $e');
+          SnackbarHelper.showError('Fall Detection', 'Model run error: $e');
         }
       }
     });
@@ -67,7 +67,7 @@ class FallDetectionService {
   }
 
   int _consecutiveFallCount = 0;
-  static const int _requiredConsecutiveFrames = 8;
+  static const int _requiredConsecutiveFrames = 10;
 
   void _runModel() {
     final input = [
@@ -100,15 +100,6 @@ class FallDetectionService {
     if (_consecutiveFallCount >= _requiredConsecutiveFrames) {
       // Trigger fall
       _fallStreamController.add(true);
-      // Optional: Reset count immediately to prevent continuous stream of trues for the same event
-      // or keep it ensuring the UI handles debounce. For now, letting it stream true is fine
-      // if the UI de-bounces, but to be safer let's throttle slightly or just let it pass.
-      // Given the previous code was just streaming booleans, we'll stream true.
-      // To strictly avoid spamming true every frame after the 3rd, we might want to reset,
-      // but if the fall lasts longer, continuous true is better.
-
-      // However, to mimic "harder to trigger", resetting after a successful trigger
-      // enforces a "fresh" fall detection event. Let's not reset, but just rely on the count.
     } else {
       _fallStreamController.add(false);
     }

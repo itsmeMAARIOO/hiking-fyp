@@ -500,7 +500,6 @@ class _HealthCardPageState extends State<HealthCardPage> {
       final p = path.replaceFirst('file://', '');
       return FileImage(File(p));
     }
-    // If it's an asset path string
     return AssetImage(path);
   }
 }

@@ -30,16 +30,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve uploaded files (must come before routes if serving images)
+// Serve uploaded files (must come before routes if serving images)
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// ✅ Serve offline map tiles
+// Serve offline map tiles
 app.use(
   "/offline-maps",
   express.static(path.join(process.cwd(), "offline-maps"))
 );
 
-// ✅ Routes
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/checkin", checkinRoutes);
 app.use("/api/users", userRoutes);
@@ -53,7 +53,7 @@ app.use("/api/first-aid", firstAidRoutes);
 // MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // server.js
@@ -70,14 +70,10 @@ const io = new SocketIOServer(server, {
 // attach io to app for access in routes
 app.set("io", io);
 
-io.on("connection", (socket) => {
-
-  console.log("🔌 Client connected:", socket.id);
-  
+io.on("connection", (socket) => {  
   socket.on("join", ({ groupId }) => {
     if (groupId) {
       socket.join(groupId);
-      console.log(`👥 Socket ${socket.id} joined room ${groupId}`);
     }
   });
 
@@ -112,12 +108,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("📴 Client disconnected:", socket.id);
+    console.log("Client disconnected:", socket.id);
   });
 });
 
 server.listen(PORT, "0.0.0.0", () =>
-  console.log(`🚀 Server with Socket.IO running on http://0.0.0.0:${PORT}`)
+  console.log(`Server with Socket.IO running on http://0.0.0.0:${PORT}`)
 );
 
 function createTransport() {
@@ -275,8 +271,13 @@ function scheduleOverdueCheck(trailId, expectedEndTime) {
     clearTimeout(existing);
     scheduledTimers.delete(key);
   }
-  const end = new Date(expectedEndTime);
-  const delay = end.getTime() - Date.now();
+  const dbDate = new Date(expectedEndTime);
+  // subtract 8 hours to get the actual UTC time for comparison with server 'Now'.
+  const end = new Date(dbDate.getTime() - 8 * 60 * 60 * 1000);
+  
+  const now = Date.now();
+  const delay = end.getTime() - now;
+
   if (delay <= 0) {
     sendOverdueEmailAndMark(trailId);
     return;

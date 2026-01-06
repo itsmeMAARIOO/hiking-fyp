@@ -192,14 +192,24 @@ class _DashboardPageContentState extends State<DashboardPageContent>
       );
       if (invitation != null) {
         final groupId = invitation['groupId'] ?? '';
-        setState(() {
-          _hasPendingInvite = true;
-          _lastInviteId = groupId.isNotEmpty ? groupId : _lastInviteId;
-        });
-        await dashboardController.notifyInvitationIfNew(
-          lastInviteId: _lastInviteId,
-          invitation: invitation,
-        );
+        // Only notify if it's a new group ID we haven't seen this session
+        if (groupId != _lastInviteId) {
+          setState(() {
+            _hasPendingInvite = true;
+            _lastInviteId = groupId.isNotEmpty ? groupId : _lastInviteId;
+          });
+          await dashboardController.notifyInvitationIfNew(
+            lastInviteId: _lastInviteId,
+            invitation: invitation,
+          );
+        } else {
+          // It's the same old invite; just ensure UI shows the badge
+          if (!_hasPendingInvite) {
+            setState(() {
+              _hasPendingInvite = true;
+            });
+          }
+        }
       }
     } catch (_) {}
   }

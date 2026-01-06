@@ -38,10 +38,10 @@ class ProfileController {
         // Also fetch hike counts for solo and group
         await fetchHikeCounts();
       } else {
-        debugPrint("❌ Failed to fetch user data: ${response.statusCode}");
+        debugPrint("Failed to fetch user data: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint("⚠️ Error fetching user data: $e");
+      debugPrint("Error fetching user data: $e");
     } finally {
       provider.isLoading = false;
       provider.notifyListeners();
@@ -325,6 +325,12 @@ class ProfileController {
       final targetYear = year ?? now.year;
       orderedKeys = List.generate(12, (i) {
         final d = DateTime(targetYear, i + 1, 1);
+        return keyFor(d);
+      });
+    } else if (filter == 'Week') {
+      final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
+      orderedKeys = List.generate(7, (i) {
+        final d = startOfWeek.add(Duration(days: i));
         return keyFor(d);
       });
     } else {

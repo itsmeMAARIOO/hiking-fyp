@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hikingapp/utils/snackbar_helper.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -170,7 +171,11 @@ class EmergencyProvider extends ChangeNotifier {
           .toList(),
       'latitude': pos.latitude,
       'longitude': pos.longitude,
-      'timestamp': DateTime.now().toIso8601String(),
+      // Compensate for server using PST (UTC-8) instead of UTC/Local.
+      // MYT (UTC+8) is 16h ahead of PST.
+      'timestamp': DateTime.now()
+          .add(const Duration(hours: 16))
+          .toIso8601String(),
     };
     try {
       _isSendingLocation = true;
@@ -256,7 +261,10 @@ class EmergencyProvider extends ChangeNotifier {
           .toList(),
       'latitude': pos.latitude,
       'longitude': pos.longitude,
-      'timestamp': DateTime.now().toIso8601String(),
+      // Adjust for server timezone (PST) to show correct MYT time
+      'timestamp': DateTime.now()
+          .add(const Duration(hours: 16))
+          .toIso8601String(),
       'emergency': true,
       'subject': 'EMERGENCY LOCATION ALERT',
       'theme': 'red',
@@ -350,7 +358,10 @@ class EmergencyProvider extends ChangeNotifier {
           .toList(),
       'latitude': pos.latitude,
       'longitude': pos.longitude,
-      'timestamp': DateTime.now().toIso8601String(),
+      // Adjust for server timezone (PST) to show correct MYT time
+      'timestamp': DateTime.now()
+          .add(const Duration(hours: 16))
+          .toIso8601String(),
       'trailName': trailName,
       'trailDescription': trailDescription,
       'expectedEndTime': expectedEndTime?.toIso8601String(),
