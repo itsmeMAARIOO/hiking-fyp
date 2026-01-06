@@ -1,14 +1,10 @@
 import express from "express";
 import mongoose from "mongoose";
 import TrailGroup from "../models/TrailGroup.js";
-import Checkin from "../models/Checkin.js";
+import CheckIn from "../models/CheckIn.js";
 const router = express.Router();
 
-/* ---------------------------------------------
- 🚀 API Routes
-----------------------------------------------*/
-
-// ✅ Count completed group hikes by user (user is a member and trail completed)
+// Count completed group hikes by user (user is a member and trail completed)
 router.get("/count/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -23,13 +19,12 @@ router.get("/count/:userId", async (req, res) => {
 
     res.json({ success: true, userId, totalGroupHikes: count });
   } catch (err) {
-    console.error("❌ Error counting group hikes:", err);
+    console.error("Error counting group hikes:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-//--------------------------------------------------------------------------------- Using API -----------------------------------------------------------------------------
-// ✅ Get nearby hikers
+// Get nearby hikers
 router.post("/nearby", async (req, res) => {
   try {
     const { latitude, longitude, radius = 1.5, excludeUserId } = req.body;
@@ -42,9 +37,9 @@ router.post("/nearby", async (req, res) => {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
     // Fetch check-ins within the last 5 minutes
-    const recentCheckins = await Checkin.find({
+    const recentCheckins = await CheckIn.find({
       checkinTime: { $gte: fiveMinutesAgo },
-    }).populate("userId", "name profileImage"); // ✅ populate name + optional profileImage
+    }).populate("userId", "name profileImage"); // populate name + optional profileImage
 
     const toRad = (val) => (val * Math.PI) / 180;
     const R = 6371; // Earth radius in km
@@ -57,7 +52,7 @@ router.post("/nearby", async (req, res) => {
         if (excludeUserId && checkin.userId?._id?.toString() === excludeUserId)
           return false;
 
-        // 🌍 Haversine distance formula
+        // Haversine distance formula
         const dLat = toRad(checkin.latitude - latitude);
         const dLon = toRad(checkin.longitude - longitude);
         const a =
@@ -73,13 +68,13 @@ router.post("/nearby", async (req, res) => {
       })
       .sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
 
-    // 🧾 Format response
+    // Format response
     res.json({
       success: true,
       count: nearby.length,
       hikers: nearby.map((c) => ({
         userId: c.userId?._id || c.userId,
-        name: c.userId?.name || "Unknown Hiker", // ✅ fixed here
+        name: c.userId?.name || "Unknown Hiker", // fixed here
         profileImage: c.userId?.profileImage || "",
         latitude: c.latitude,
         longitude: c.longitude,
@@ -89,18 +84,18 @@ router.post("/nearby", async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("❌ Error fetching nearby check-ins:", err);
+    console.error("Error fetching nearby check-ins:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ Get specific group details (populated version)
+// Get specific group details (populated version)
 router.get("/group/:groupId", async (req, res) => {
   try {
     const { groupId } = req.params;
 
     const group = await TrailGroup.findById(groupId)
-      .populate("members.userId", "name profileImage email") // 🧠 key part
+      .populate("members.userId", "name profileImage email") // key part
       .lean();
 
     if (!group) {
@@ -109,7 +104,7 @@ router.get("/group/:groupId", async (req, res) => {
 
     res.json({ success: true, group });
   } catch (err) {
-    console.error("❌ Error fetching group:", err);
+    console.error("Error fetching group:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -132,12 +127,12 @@ router.get("/history/:userId", async (req, res) => {
 
     res.json({ success: true, groups });
   } catch (err) {
-    console.error("❌ Error fetching group history:", err);
+    console.error("Error fetching group history:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// 🗑️ Remove a completed group hike from history by groupId
+// Remove a completed group hike from history by groupId
 router.delete("/history/:groupId", async (req, res) => {
   try {
     const { groupId } = req.params;
@@ -159,7 +154,7 @@ router.delete("/history/:groupId", async (req, res) => {
     await TrailGroup.deleteOne({ _id: groupId });
     return res.json({ success: true });
   } catch (err) {
-    console.error("❌ Error deleting group history:", err);
+    console.error("Error deleting group history:", err);
     return res
       .status(500)
       .json({ error: "Server error", details: err.message });
@@ -189,7 +184,7 @@ router.get("/path/:groupId", async (req, res) => {
       const uid = m.userId?._id || m.userId;
       if (!uid) continue;
 
-      const logs = await Checkin.find({
+      const logs = await CheckIn.find({
         userId: uid,
         checkinTime: { $gte: start, $lte: end },
       })
@@ -219,12 +214,12 @@ router.get("/path/:groupId", async (req, res) => {
       members: memberPaths,
     });
   } catch (err) {
-    console.error("❌ Error fetching path replay:", err);
+    console.error("Error fetching path replay:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// ✅ Create new trail group with invited members
+// Create new trail group with invited members
 router.post("/create-group", async (req, res) => {
   try {
     const { groupName, createdBy, creatorName, trailName, trailDescription, invitedMembers } =
@@ -246,7 +241,17 @@ router.post("/create-group", async (req, res) => {
 
     // Add invited members with 'invited' status
     if (invitedMembers && Array.isArray(invitedMembers)) {
+      const seenUserIds = new Set();
+      // Add creator to seen set to auto-exclude (normalize string)
+      seenUserIds.add(String(createdBy).trim());
+
       invitedMembers.forEach((member) => {
+        if (!member.userId) return;
+        const uid = String(member.userId).trim();
+        
+        if (seenUserIds.has(uid)) return;
+        seenUserIds.add(uid);
+
         members.push({
           userId: member.userId,
           name: member.name || "Invited Member",
@@ -269,18 +274,14 @@ router.post("/create-group", async (req, res) => {
       },
     });
 
-    console.log(`✅ Group created: ${groupName}`);
-    console.log(`   Leader: ${creatorName}`);
-    console.log(`   Invited: ${invitedMembers?.length || 0} members`);
-
     res.json({ success: true, group });
   } catch (err) {
-    console.error("❌ Error creating group:", err);
+    console.error("Error creating group:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ Update member location
+// Update member location
 router.post("/update-location", async (req, res) => {
   try {
     const { groupId, userId, latitude, longitude, name } = req.body;
@@ -313,12 +314,12 @@ router.post("/update-location", async (req, res) => {
     await group.save();
     res.json({ success: true, group });
   } catch (err) {
-    console.error("❌ Error updating location:", err);
+    console.error("Error updating location:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ Add member to group
+// Add member to group
 router.post("/add-member", async (req, res) => {
   try {
     const { groupId, userId, name } = req.body;
@@ -347,12 +348,12 @@ router.post("/add-member", async (req, res) => {
     await group.save();
     res.json({ success: true, group });
   } catch (err) {
-    console.error("❌ Error adding member:", err);
+    console.error("Error adding member:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ Leave group
+// Leave group
 router.post("/leave-group", async (req, res) => {
   try {
     const { groupId, userId } = req.body;
@@ -372,22 +373,19 @@ router.post("/leave-group", async (req, res) => {
     }
 
     await group.save();
-    console.log(`👋 User left group: ${group.groupName}`);
     res.json({ success: true, message: "Left group successfully" });
   } catch (err) {
-    console.error("❌ Error leaving group:", err);
+    console.error("Error leaving group:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
-//--------------------------------------------------------------------------------- Using API -----------------------------------------------------------------------------
 
 // routes/trailGroupRoutes.js
 router.get("/invitation/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
     const group = await TrailGroup.findOne({
-      "members.userId": userId,
-      "members.status": "invited",
+      members: { $elemMatch: { userId: userId, status: "invited" } },
     });
 
     if (!group) {
@@ -434,14 +432,11 @@ router.get("/groups/:groupId", async (req, res) => {
   }
 });
 
-// Add this route to your trailGroupRoutes.js
-
-// ✅ End trail (creator only - ends for everyone)
+// End trail (creator only - ends for everyone)
 router.post("/end-trail", async (req, res) => {
   try {
     const { groupId, userId } = req.body;
 
-    console.log("📍 End trail request:", { groupId, userId });
 
     if (!groupId || !userId) {
       return res.status(400).json({ error: "Missing groupId or userId" });
@@ -449,17 +444,11 @@ router.post("/end-trail", async (req, res) => {
 
     const group = await TrailGroup.findById(groupId);
     if (!group) {
-      console.log("❌ Group not found:", groupId);
       return res.status(404).json({ error: "Group not found" });
     }
 
-    console.log("✅ Group found:", group.groupName);
-    console.log("   Creator:", group.createdBy);
-    console.log("   Requesting user:", userId);
-
     // Verify user is the creator
     if (group.createdBy.toString() !== userId) {
-      console.log("❌ Not creator - access denied");
       return res
         .status(403)
         .json({ error: "Only the creator can end the trail" });
@@ -473,15 +462,13 @@ router.post("/end-trail", async (req, res) => {
 
     await group.save();
 
-    console.log(`🏁 Trail marked completed by creator: ${group.groupName}`);
     res.json({
       success: true,
       message: "Trail completed for all members",
       group,
     });
   } catch (err) {
-    console.error("❌ Error ending trail:", err);
-    console.error("   Stack:", err.stack);
+    console.error("Error ending trail:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });

@@ -7,6 +7,7 @@ class TabSelector extends StatelessWidget {
   final bool showChat;
   final bool showLibrary;
   final bool hasUnread;
+  final bool hasUnreadImages;
 
   const TabSelector({
     super.key,
@@ -15,6 +16,7 @@ class TabSelector extends StatelessWidget {
     this.showChat = true,
     this.showLibrary = true,
     this.hasUnread = false,
+    this.hasUnreadImages = false,
   });
 
   @override
@@ -98,6 +100,7 @@ class TabSelector extends StatelessWidget {
                         icon: Icons.photo_library_rounded,
                         isSelected: selectedIndex == (showChat ? 2 : 1),
                         onTap: () => onSelect(showChat ? 2 : 1),
+                        isUnread: hasUnreadImages,
                       ),
                     ),
                 ],

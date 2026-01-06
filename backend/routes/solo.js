@@ -55,7 +55,7 @@ function formatMalaysiaTime(date) {
   return `${dd}-${mmm}-${yyyy} ${hh}:${mm}:${ss} MYT`;
 }
 
-// ✅ Count completed solo hikes by user
+// Count completed solo hikes by user
 router.get("/count/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -69,7 +69,7 @@ router.get("/count/:userId", async (req, res) => {
     });
     res.json({ success: true, userId, totalSoloHikes: count });
   } catch (err) {
-    console.error("❌ Error counting solo hikes:", err);
+    console.error("Error counting solo hikes:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
@@ -85,12 +85,12 @@ router.get("/history/:userId", async (req, res) => {
       .lean();
     res.json({ success: true, trails });
   } catch (err) {
-    console.error("❌ Error fetching solo history:", err);
+    console.error("Error fetching solo history:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// 🗑️ Remove a completed solo hike from history by trailId
+// Remove a completed solo hike from history by trailId
 router.delete("/history/:trailId", async (req, res) => {
   try {
     const { trailId } = req.params;
@@ -112,7 +112,7 @@ router.delete("/history/:trailId", async (req, res) => {
     await SoloTrail.deleteOne({ _id: trailId });
     return res.json({ success: true });
   } catch (err) {
-    console.error("❌ Error deleting solo history:", err);
+    console.error("Error deleting solo history:", err);
     return res
       .status(500)
       .json({ error: "Server error", details: err.message });
@@ -128,12 +128,12 @@ router.get("/trail/:trailId", async (req, res) => {
     }
     res.json({ success: true, trail });
   } catch (err) {
-    console.error("❌ Error fetching solo trail:", err);
+    console.error("Error fetching solo trail:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// ✅ Live location update while solo trail is active
+// Live location update while solo trail is active
 router.post("/update-location", async (req, res) => {
   try {
     const { userId, trailName, trailDescription, latitude, longitude } =
@@ -149,7 +149,7 @@ router.post("/update-location", async (req, res) => {
         .json({ error: "Missing userId or invalid coordinates" });
     }
 
-    const now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+    const now = new Date();
 
     // Find active solo trail for the user or create one
     let trail = await SoloTrail.findOne({ userId, status: "active" });
@@ -175,12 +175,12 @@ router.post("/update-location", async (req, res) => {
 
     res.json({ success: true, trail });
   } catch (err) {
-    console.error("❌ Error updating solo location:", err);
+    console.error("Error updating solo location:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// ✅ Complete the current active solo trail (do NOT create a new record)
+// Complete the current active solo trail (do NOT create a new record)
 router.post("/save", async (req, res) => {
   try {
     const { userId, trailName, endTime } = req.body;
@@ -189,7 +189,7 @@ router.post("/save", async (req, res) => {
       return res.status(400).json({ error: "Missing userId or trailName" });
     }
 
-    const now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+    const now = new Date();
 
     // Find the user's currently active solo trail and mark it completed
     // We intentionally only look for one active trail per user
@@ -215,12 +215,12 @@ router.post("/save", async (req, res) => {
 
     res.json({ success: true, trail });
   } catch (err) {
-    console.error("❌ Error completing solo trail:", err);
+    console.error("Error completing solo trail:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// ✅ Notify contacts that a solo trail has started (green template)
+// Notify contacts that a solo trail has started (green template)
 router.post("/notify/start", async (req, res) => {
   try {
     const {
@@ -242,7 +242,7 @@ router.post("/notify/start", async (req, res) => {
       return res.status(400).json({ message: "Missing parameters" });
     }
 
-    const when = timestamp ? new Date(timestamp) : new Date();
+    const when = new Date();
     const expectedEnd = expectedEndTime ? new Date(expectedEndTime) : null;
     const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
     const timeMY = formatMalaysiaTime(when);

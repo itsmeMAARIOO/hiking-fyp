@@ -6,7 +6,7 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
-// ✅ Signup
+// Signup
 router.post("/signup", async (req, res) => {
   try {
     const {
@@ -61,7 +61,7 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// ✅ Login
+// Login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -75,12 +75,12 @@ router.post("/login", async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    // ✅ Return user info including profile image (if any)
+    // Return user info including profile image (if any)
     res.json({
       id: user._id,
       name: user.name,
       email: user.email,
-      profileImage: user.profileImage || "", // ✅ Added this line
+      profileImage: user.profileImage || "", 
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -195,6 +195,48 @@ router.get("/reset/:token", async (req, res) => {
     res.send(html);
   } catch (err) {
     res.status(500).send("Server error");
+  }
+});
+
+// Google Login
+router.post("/google", async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    
+    // Verify token with Google
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+    const data = await response.json();
+
+    if (data.error || !data.email) {
+      return res.status(400).json({ message: "Invalid Google Token" });
+    }
+
+    const { email, name, picture } = data;
+
+    // Check if user exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // User exists - Return success with token
+      res.json({
+        token: "google-session-token", // Mock token since JWT is not fully implemented in this file yet
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          profileImage: user.profileImage || picture,
+        },
+      });
+    } else {
+      // User does not exist - Return 200 but without token so frontend redirects to Signup
+      res.json({
+        message: "User not found, please sign up",
+        email: email,
+        name: name
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

@@ -94,7 +94,7 @@ class TrailServices {
         }
       } catch (e) {
         navigator.pop();
-        SnackbarHelper.showError('Error', '⚠️ Failed: ${e.toString()}');
+        SnackbarHelper.showError('Error', 'Failed: ${e.toString()}');
       }
     }
 

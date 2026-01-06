@@ -8,13 +8,13 @@ import TrailGroup from "../models/TrailGroup.js";
 
 const router = express.Router();
 
-// ✅ Multer setup (memory storage) for direct Cloudinary upload
+// Multer setup (memory storage) for direct Cloudinary upload
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ✅ GET user by ID (for Edit Profile fetch)
+// GET user by ID (for Edit Profile fetch)
 router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -22,12 +22,12 @@ router.get("/:userId", async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (error) {
-    console.error("❌ Fetch user error:", error);
+    console.error("Fetch user error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ UPDATE user profile (with optional image)
+// UPDATE user profile (with optional image)
 router.post("/update", upload.single("profileImage"), async (req, res) => {
   try {
     const {
@@ -46,7 +46,7 @@ router.post("/update", upload.single("profileImage"), async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Build update object
+    // Build update object
     const updateData = {
       name,
       email,
@@ -68,7 +68,7 @@ router.post("/update", upload.single("profileImage"), async (req, res) => {
         .filter((s) => s.length > 0);
     }
 
-    // ✅ Handle profile image via Cloudinary (do not save locally)
+    // Handle profile image via Cloudinary (do not save locally)
     if (req.file) {
       try {
         const uploadResult = await new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ router.post("/update", upload.single("profileImage"), async (req, res) => {
         // Save secure Cloudinary URL in MongoDB
         updateData.profileImage = uploadResult.secure_url;
       } catch (uploadErr) {
-        console.error("❌ Cloudinary upload error:", uploadErr);
+        console.error("Cloudinary upload error:", uploadErr);
         return res
           .status(500)
           .json({ message: "Image upload failed", error: uploadErr.message });
@@ -101,12 +101,12 @@ router.post("/update", upload.single("profileImage"), async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("❌ Update user error:", error);
+    console.error("Update user error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// ✅ Add emergency contact (max 5)
+// Add emergency contact (max 5)
 router.post("/emergency-contacts/add", async (req, res) => {
   try {
     const { userId, contact } = req.body;
@@ -132,12 +132,12 @@ router.post("/emergency-contacts/add", async (req, res) => {
       emergencyContacts: user.emergencyContacts,
     });
   } catch (error) {
-    console.error("❌ Add emergency contact error:", error);
+    console.error("Add emergency contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// ✅ Remove emergency contact by index
+// Remove emergency contact by index
 router.post("/emergency-contacts/remove", async (req, res) => {
   try {
     const { userId, index } = req.body;
@@ -157,12 +157,12 @@ router.post("/emergency-contacts/remove", async (req, res) => {
       emergencyContacts: user.emergencyContacts,
     });
   } catch (error) {
-    console.error("❌ Remove emergency contact error:", error);
+    console.error("Remove emergency contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// ✅ Update emergency contact by index
+// Update emergency contact by index
 router.post("/emergency-contacts/update", async (req, res) => {
   try {
     const { userId, index, contact } = req.body;
@@ -189,7 +189,7 @@ router.post("/emergency-contacts/update", async (req, res) => {
       emergencyContacts: user.emergencyContacts,
     });
   } catch (error) {
-    console.error("❌ Update emergency contact error:", error);
+    console.error("Update emergency contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -214,12 +214,12 @@ router.post("/emergency-contacts/share-toggle", async (req, res) => {
       emergencyContacts: user.emergencyContacts,
     });
   } catch (error) {
-    console.error("❌ Share toggle error:", error);
+    console.error("Share toggle error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// ✅ UPDATE toggle settings one by one
+// UPDATE toggle settings one by one
 router.post("/update-setting", async (req, res) => {
   try {
     const { userId, key, value } = req.body;
@@ -251,12 +251,12 @@ router.post("/update-setting", async (req, res) => {
       settings: updatedUser.settings,
     });
   } catch (error) {
-    console.error("❌ Update setting error:", error);
+    console.error("Update setting error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// ✅ Combined hike counts for profile page (solo + group)
+// Combined hike counts for profile page (solo + group)
 router.get("/hike-counts/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -279,7 +279,7 @@ router.get("/hike-counts/:userId", async (req, res) => {
       totalGroupHikes: groupCount,
     });
   } catch (error) {
-    console.error("❌ Hike counts error:", error);
+    console.error("Hike counts error:", error);
     return res
       .status(500)
       .json({ message: "Server error", error: error.message });

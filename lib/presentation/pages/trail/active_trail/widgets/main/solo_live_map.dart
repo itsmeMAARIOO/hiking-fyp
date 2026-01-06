@@ -225,11 +225,8 @@ class _SoloLiveMapState extends State<SoloLiveMap> {
               ),
               children: [
                 TileLayer(
-                  urlTemplate:
-                      "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-                  subdomains: const ['a', 'b', 'c'],
+                  urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                   userAgentPackageName: 'com.example.hikingapp',
-                  maxNativeZoom: 17,
                 ),
                 if (points.isNotEmpty)
                   PolylineLayer(

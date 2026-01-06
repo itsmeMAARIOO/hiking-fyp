@@ -11,7 +11,7 @@ const soloTrailSchema = new mongoose.Schema(
     },
     startTime: {
       type: Date,
-      default: () => new Date(new Date().getTime() + 8 * 60 * 60 * 1000),
+      default: Date.now,
     },
     endTime: Date,
     expectedEndTime: Date,
@@ -27,7 +27,7 @@ const soloTrailSchema = new mongoose.Schema(
     latestLongitude: Number,
     lastUpdated: {
       type: Date,
-      default: () => new Date(new Date().getTime() + 8 * 60 * 60 * 1000),
+      default: Date.now,
     },
     status: { type: String, enum: ["active", "completed"], default: "active" },
   },

@@ -8,9 +8,6 @@ import 'package:hikingapp/data/models/weather_model.dart';
 import 'package:hikingapp/providers/map_provider.dart';
 import 'package:provider/provider.dart';
 
-// --- LOCAL THEME CONSTANTS ---
-// Defined here to ensure the specific "Mint & Air" look works instantly
-
 class WeatherWidget extends StatefulWidget {
   const WeatherWidget({super.key});
 
@@ -90,14 +87,6 @@ class _WeatherWidgetState extends State<WeatherWidget>
 
     if (lat == null || lon == null) return;
 
-    // Optional: simple debounce or check if moved significantly could go here,
-    // but for now we just load if we haven't loaded successfully yet or if we simply want fresh weather.
-    // If we already have weather, maybe we don't need to reload every meter.
-    // Let's reload if we don't have weather or moved > 1km?
-    // For simplicity, let's just load if this is the first time or if we explicitly decide to auto-refresh.
-    // Given the user request "auto refresh so that it can fetch the location information",
-    // we should ensure we fetch when we get the first location.
-
     if (weather == null || _shouldRefresh(lat, lon)) {
       _fetchWeather(lat, lon);
     }
@@ -106,8 +95,6 @@ class _WeatherWidgetState extends State<WeatherWidget>
   bool _shouldRefresh(double newLat, double newLon) {
     if (_lastLat == null || _lastLon == null) return true;
 
-    // Calculate distance or simplified diff
-    // 0.01 degrees is roughly 1km
     if ((newLat - _lastLat!).abs() > 0.01 ||
         (newLon - _lastLon!).abs() > 0.01) {
       return true;
@@ -116,16 +103,10 @@ class _WeatherWidgetState extends State<WeatherWidget>
   }
 
   Future<void> _fetchWeather(double lat, double lon) async {
-    // Avoid spamming if already loading?
-    // But we might be switching location.
-    // For UX, let's keep it simple.
-
     _lastLat = lat;
     _lastLon = lon;
 
     try {
-      // If we are already showing weather, maybe don't show full loading spinner?
-      // But for first load we need it.
       if (weather == null && mounted) {
         setState(() {
           isLoading = true;
@@ -142,7 +123,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
         setState(() {
           weather = fetchedWeather;
           isLoading = false;
-          isOffline = false; // assumed online if successful
+          isOffline = false;
         });
         _animationController.forward();
       }
@@ -151,7 +132,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
         // Only set offline/error if we failed to get weather and don't have stale weather
         if (weather == null) {
           setState(() {
-            isOffline = true; // or just error
+            isOffline = true;
             isLoading = false;
           });
         }
@@ -167,17 +148,6 @@ class _WeatherWidgetState extends State<WeatherWidget>
   @override
   void dispose() {
     _animationController.dispose();
-    // Try remove listener safely
-    // (In dispose, context might be tricky, but usually acceptable if provider is ancestor)
-    // Actually best practice is to rely on provider being part of widget tree.
-    // But we added listener manually. We should remove it.
-    // However, if we can't access context in dispose easily or safely without warnings...
-    // simpler: rely on `AutoDispose` or just ignore for this persistent widget?
-    // Correct way:
-    // We can hold a reference to the provider if we extracted it in didChangeDependencies.
-    // Let's skip removing for now to avoid complexity or boilerplate,
-    // OR ideally use Consumer in build?
-    // Using Consumer in build is safer for "listening".
     super.dispose();
   }
 

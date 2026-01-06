@@ -17,8 +17,6 @@ class _LocationDisplayState extends State<LocationDisplay>
   late Animation<double> _pulseAnimation;
   late Animation<double> _expandAnimation;
 
-  // We remove the boolean _isExpanded for rendering logic
-  // and rely on the controller status instead.
   bool _isExpanded = false;
 
   @override

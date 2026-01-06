@@ -36,8 +36,8 @@ class AuthService {
 
       final body = jsonEncode(payload);
 
-      print('🚀 Making request to: $url');
-      print('📤 Request body: $body');
+      print('Making request to: $url');
+      print('Request body: $body');
 
       final response = await http
           .post(
@@ -55,8 +55,8 @@ class AuthService {
             ),
           );
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: ${response.body}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
@@ -65,7 +65,7 @@ class AuthService {
         throw Exception(errorData['message'] ?? "Signup failed");
       }
     } catch (e) {
-      print('❌ API Signup Error: $e');
+      print('API Signup Error: $e');
       rethrow;
     }
   }
@@ -79,7 +79,7 @@ class AuthService {
       final baseUrl = ApiConfig.baseUrl;
       final url = Uri.parse('$baseUrl/auth/login');
 
-      print('🚀 Making request to: $url');
+      print('Making request to: $url');
 
       final response = await http
           .post(
@@ -97,8 +97,8 @@ class AuthService {
             ),
           );
 
-      print('📥 Login response status: ${response.statusCode}');
-      print('📥 Login response body: ${response.body}');
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -107,7 +107,7 @@ class AuthService {
         throw Exception(errorData['message'] ?? "Login failed");
       }
     } catch (e) {
-      print('❌ Login API Error: $e');
+      print('Login API Error: $e');
       rethrow;
     }
   }
@@ -119,7 +119,7 @@ class AuthService {
           ApiConfig.baseUrl; // Ensure this is your Node.js backend URL
       final url = Uri.parse('$baseUrl/auth/google');
 
-      print('🚀 Authenticating with Backend: $url');
+      print('Authenticating with Backend: $url');
 
       final response = await http
           .post(
@@ -132,7 +132,7 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 10));
 
-      print('📥 Backend Response: ${response.statusCode} ${response.body}');
+      print('Backend Response: ${response.statusCode} ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
@@ -141,7 +141,7 @@ class AuthService {
         throw Exception(errorData['message'] ?? "Google Backend Login failed");
       }
     } catch (e) {
-      print('❌ Backend Auth Error: $e');
+      print('Backend Auth Error: $e');
       rethrow;
     }
   }
@@ -163,7 +163,7 @@ class AuthService {
             await googleUser.authentication;
 
         // Print token for debugging (remove in production)
-        print('🆔 Google ID Token: ${googleAuth.idToken}');
+        print('Google ID Token: ${googleAuth.idToken}');
 
         return {
           'name': googleUser.displayName ?? '',
@@ -173,7 +173,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('❌ Google Sign In Error: $e');
+      print('Google Sign In Error: $e');
       return null;
     }
   }
@@ -186,10 +186,10 @@ class AuthService {
           .get(Uri.parse('$baseUrl/'), headers: {"Accept": "application/json"})
           .timeout(const Duration(seconds: 5));
 
-      print('🔍 Server test response: ${response.statusCode}');
+      print('Server test response: ${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
-      print('❌ Server connection test failed: $e');
+      print('Server connection test failed: $e');
       return false;
     }
   }

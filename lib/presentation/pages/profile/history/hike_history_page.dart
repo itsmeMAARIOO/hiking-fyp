@@ -448,7 +448,9 @@ class _SoloItemCard extends StatelessWidget {
       }
     } catch (_) {}
     final endStr = end != null
-        ? DateFormat('d MMM yyyy, HH:mm').format(end.toLocal())
+        ? DateFormat(
+            'd MMM yyyy, HH:mm',
+          ).format(end.subtract(const Duration(hours: 8)).toLocal())
         : '-';
     return GestureDetector(
       onTap: () {

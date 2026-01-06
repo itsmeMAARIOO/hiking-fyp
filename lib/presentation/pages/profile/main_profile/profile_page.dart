@@ -271,25 +271,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                                 child: Column(
                                   children: [
-                                    // _buildEnhancedSettingsToggle(
-                                    //   icon: Icons.notifications_active_rounded,
-                                    //   label: 'Push Notifications',
-                                    //   value: profile.settings['pushNotifications']!,
-                                    //   onToggle: (v) => controller.toggleSetting(
-                                    //     'pushNotifications',
-                                    //     v,
-                                    //   ),
-                                    //   isFirst: true,
-                                    // ),
-                                    // _buildEnhancedSettingsToggle(
-                                    //   icon: Icons.my_location_rounded,
-                                    //   label: 'Location Sharing',
-                                    //   value: profile.settings['locationSharing']!,
-                                    //   onToggle: (v) => controller.toggleSetting(
-                                    //     'locationSharing',
-                                    //     v,
-                                    //   ),
-                                    // ),
                                     SettingsToggle(
                                       icon: Icons.health_and_safety_rounded,
                                       label: 'Fall Detection',
@@ -299,13 +280,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                         v,
                                       ),
                                     ),
-                                    // _buildEnhancedSettingsToggle(
-                                    //   icon: Icons.check_circle_outline_rounded,
-                                    //   label: 'Auto Check-in',
-                                    //   value: profile.settings['autoCheckIn']!,
-                                    //   onToggle: (v) =>
-                                    //       controller.toggleSetting('autoCheckIn', v),
-                                    // ),
                                     SettingsToggle(
                                       icon: Icons.cloud_rounded,
                                       label: 'Weather Alerts',

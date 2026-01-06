@@ -416,38 +416,47 @@ class EmergencyContactCard extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.security_rounded, size: 48, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text(
-            "No Emergency Contacts",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: kDeepForest,
-            ),
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "Add trusted contacts to share your location during emergencies.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade500,
-              height: 1.4,
-            ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.security_rounded,
+                size: 48,
+                color: Colors.grey.shade300,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "No Emergency Contacts",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: kDeepForest,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Add trusted contacts to share your location during emergencies.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade500,
+                  height: 1.4,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 80),
+      ],
     );
   }
 }

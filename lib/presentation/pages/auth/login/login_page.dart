@@ -337,24 +337,10 @@ class _LoginPageState extends State<LoginPage>
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Simple G logo representation since we don't have asset
-                                  Container(
+                                  Image.asset(
+                                    ImageLocation.googleLogo,
                                     width: 24,
                                     height: 24,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.white,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        "G",
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w900,
-                                          color: kDeepForest,
-                                        ),
-                                      ),
-                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   const Text(
