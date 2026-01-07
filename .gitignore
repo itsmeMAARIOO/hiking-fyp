@@ -45,3 +45,17 @@ app.*.map.json
 /android/app/release
 
 serviceAccountKey.json
+
+# Environment Variables and Secrets
+.env
+.env.*
+*.env
+*.pem
+*.ppk
+*.keystore
+*.jks
+android/key.properties
+ios/Flutter/Generated.xcconfig
+
+# Dependencies
+node_modules/
